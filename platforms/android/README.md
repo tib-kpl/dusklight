@@ -4,9 +4,12 @@ This directory contains Dusklight's Android shell built on top of Borealis.
 
 ## Prerequisites
 
-- Android SDK with Platform 37 and Build Tools 36.0.0 installed (`ANDROID_HOME`)
+- Android SDK with Platform 37.0 and Build Tools 36.0.0 installed (`ANDROID_HOME`)
 - Android NDK version used by CMake presets (`ANDROID_NDK_VERSION`)
 - JDK 17+
+
+The SDK package ID is `platforms;android-37.0`. Gradle uses `compileSdk = 37`
+and `compileSdkMinor = 0` to resolve this exact platform.
 
 Example:
 

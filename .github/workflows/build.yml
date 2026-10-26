@@ -209,7 +209,7 @@ jobs:
           packages: platform-tools
 
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-37" "build-tools;36.0.0" "ndk;${ANDROID_NDK_VERSION}"
+        run: sdkmanager "platforms;android-37.0" "build-tools;36.0.0" "ndk;${ANDROID_NDK_VERSION}"
 
       - name: Install Rust Android target
         run: |

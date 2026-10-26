@@ -30,6 +30,7 @@ ext.borealisAndroid = [
 apply from: new File(borealisDir, 'platforms/android/gradle/borealis-application.gradle')
 
 android {
+    compileSdkMinor = 0
     buildToolsVersion = '36.0.0'
 }
 
