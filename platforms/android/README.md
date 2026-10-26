@@ -69,7 +69,7 @@ Every branch push runs `.github/workflows/build.yml`, including documentation-on
 commits. You can also run **Build** manually from the Actions page. Pull requests
 build the same platforms without publishing a release or using signing secrets.
 
-After all seven builds succeed, a prerelease tagged `build-<full commit SHA>` is
+After all eight builds succeed, a prerelease tagged `build-<full commit SHA>` is
 published with Android ARM64, Linux x86_64/ARM64, Windows x86_64/ARM64, macOS
 x86_64/ARM64, and iOS ARM64 downloads. Each release includes SHA-256 checksums.
 Rerunning a workflow updates the same release. Each push builds its tip commit;

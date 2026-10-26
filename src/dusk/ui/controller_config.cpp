@@ -175,9 +175,9 @@ Rml::String keyboard_key_name(s32 scancode) {
     case PAD_KEY_MOUSE_RIGHT:
         return android_text("Mouse Right", "Clic droit");
     case PAD_KEY_MOUSE_X1:
-        return "Mouse X1";
+        return android_text("Mouse X1", "Bouton souris X1");
     case PAD_KEY_MOUSE_X2:
-        return "Mouse X2";
+        return android_text("Mouse X2", "Bouton souris X2");
     default:
         break;
     }
@@ -1290,13 +1290,13 @@ Rml::String native_button_name(SDL_Gamepad* gamepad, u32 buttonUntyped) {
         case SDL_GAMEPAD_BUTTON_LABEL_Y:
             return "Y";
         case SDL_GAMEPAD_BUTTON_LABEL_CROSS:
-            return "Cross";
+            return android_text("Cross", "Croix");
         case SDL_GAMEPAD_BUTTON_LABEL_CIRCLE:
-            return "Circle";
+            return android_text("Circle", "Cercle");
         case SDL_GAMEPAD_BUTTON_LABEL_TRIANGLE:
             return "Triangle";
         case SDL_GAMEPAD_BUTTON_LABEL_SQUARE:
-            return "Square";
+            return android_text("Square", "Carré");
         default:
             break;
         }

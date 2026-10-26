@@ -1,6 +1,7 @@
 #include "dusk/action_bindings.h"
 
 #include "dusk/settings.h"
+#include "dusk/ui/localization.hpp"
 #include "dusk/ui/ui.hpp"
 
 #include <aurora/lib/input.hpp>
@@ -18,12 +19,12 @@ static std::array<std::array<VirtualActionBindData, static_cast<int>(ActionBinds
 
 ActionBindsMap& getActionBinds() {
     static ActionBindsMap actionBinds = {
-        {ActionBinds::FIRST_PERSON_CAMERA, {&getSettings().actionBindings.firstPersonCamera, "First Person Camera"}},
-        {ActionBinds::CALL_MIDNA,          {&getSettings().actionBindings.callMidna,         "Call Midna"}},
-        {ActionBinds::OPEN_MAP_SCREEN,     {&getSettings().actionBindings.openMapScreen,     "Open Map Screen"}},
-        {ActionBinds::TOGGLE_MINIMAP,      {&getSettings().actionBindings.toggleMinimap,     "Toggle Minimap"}},
-        {ActionBinds::OPEN_DUSKLIGHT_MENU, {&getSettings().actionBindings.openDusklightMenu, "Open Dusklight Menu"}},
-        {ActionBinds::TURBO_SPEED_BUTTON,  {&getSettings().actionBindings.turboSpeedButton,  "Turbo Speed Button"}},
+        {ActionBinds::FIRST_PERSON_CAMERA, {&getSettings().actionBindings.firstPersonCamera, ui::android_text("First Person Camera", "Vue subjective")}},
+        {ActionBinds::CALL_MIDNA,          {&getSettings().actionBindings.callMidna,         ui::android_text("Call Midna", "Appeler Midona")}},
+        {ActionBinds::OPEN_MAP_SCREEN,     {&getSettings().actionBindings.openMapScreen,     ui::android_text("Open Map Screen", "Ouvrir la carte")}},
+        {ActionBinds::TOGGLE_MINIMAP,      {&getSettings().actionBindings.toggleMinimap,     ui::android_text("Toggle Minimap", "Afficher/masquer la mini-carte")}},
+        {ActionBinds::OPEN_DUSKLIGHT_MENU, {&getSettings().actionBindings.openDusklightMenu, ui::android_text("Open Dusklight Menu", "Ouvrir le menu Dusklight")}},
+        {ActionBinds::TURBO_SPEED_BUTTON,  {&getSettings().actionBindings.turboSpeedButton,  ui::android_text("Turbo Speed Button", "Bouton turbo")}},
     };
     return actionBinds;
 }

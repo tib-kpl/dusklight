@@ -110,9 +110,15 @@ TouchControlsEditor::TouchControlsEditor()
       mResetButton(mDocument != nullptr ? mDocument->GetElementById("editor-reset") : nullptr),
       mCancelButton(mDocument != nullptr ? mDocument->GetElementById("editor-cancel") : nullptr),
       mWorkingLayout(getSettings().game.touchControlsLayout.getValue()) {
-    set_text_content(mSaveButton, android_text("Save", "Enregistrer"));
-    set_text_content(mResetButton, android_text("Reset", "Réinitialiser"));
-    set_text_content(mCancelButton, android_text("Cancel", "Annuler"));
+    if (mSaveButton != nullptr) {
+        set_text_content(mSaveButton->GetFirstChild(), android_text("Save", "Enregistrer"));
+    }
+    if (mResetButton != nullptr) {
+        set_text_content(mResetButton->GetFirstChild(), android_text("Reset", "Réinitialiser"));
+    }
+    if (mCancelButton != nullptr) {
+        set_text_content(mCancelButton->GetFirstChild(), android_text("Cancel", "Annuler"));
+    }
     mWorkingLayout.version = ControlLayout::Version;
 
     const auto controls = touch_layout_controls();

@@ -10,6 +10,12 @@
 
 # Overview
 
+This fork provides a French Android settings interface and automatic builds for
+Android, Linux, Windows, macOS, and iOS on every branch push. Download packages
+from [this fork's releases](https://github.com/tib-kpl/dusklight/releases), or follow
+the [build status](https://github.com/tib-kpl/dusklight/actions/workflows/build.yml).
+See the [Android notes](platforms/android/README.md) for signing and package details.
+
 Dusklight is a reverse-engineered reimplementation of Twilight Princess.
 
 It aims to be as accurate as possible to the original while also providing new options, enhancements, and tools to customize your experience.
