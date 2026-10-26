@@ -78,7 +78,11 @@ jobs:
         run: |
           mkdir -p upload
           cp build/install/Dusklight-*.AppImage "upload/Dusklight-linux-${{matrix.artifact_arch}}.AppImage"
-          tar -cJf "upload/Dusklight-linux-${{matrix.artifact_arch}}-sdk-debug.tar.xz" -C build/install sdk debug.tar.xz
+          extras=(debug.tar.xz)
+          if [[ -d build/install/sdk ]]; then
+            extras+=(sdk)
+          fi
+          tar -cJf "upload/Dusklight-linux-${{matrix.artifact_arch}}-debug.tar.xz" -C build/install "${extras[@]}"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -205,7 +209,7 @@ jobs:
           packages: platform-tools
 
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;${ANDROID_NDK_VERSION}"
+        run: sdkmanager "platforms;android-37" "build-tools;36.0.0" "ndk;${ANDROID_NDK_VERSION}"
 
       - name: Install Rust Android target
         run: |

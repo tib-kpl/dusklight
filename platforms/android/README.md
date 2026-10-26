@@ -4,7 +4,7 @@ This directory contains Dusklight's Android shell built on top of Borealis.
 
 ## Prerequisites
 
-- Android SDK with Platform 36 and Build Tools 36.0.0 installed (`ANDROID_HOME`)
+- Android SDK with Platform 37 and Build Tools 36.0.0 installed (`ANDROID_HOME`)
 - Android NDK version used by CMake presets (`ANDROID_NDK_VERSION`)
 - JDK 17+
 
@@ -79,7 +79,9 @@ commit.
 Linux packages include AppImages. Windows ZIPs contain the executable and its
 runtime files. Apple tarballs preserve application bundle permissions and symlinks;
 the iOS application still needs your own code signing before device installation.
-SDK and debug files from the original builds are retained.
+Debug files and any generated SDK files from the original builds are retained.
+Linux links mods directly against the executable and does not generate a separate
+SDK directory; its debug archive includes the debug symbols.
 
 Android releases use a persistent PKCS12 signing key (alias `dusklight`), so later
 APKs can update earlier installations. Configure these repository Actions secrets:
