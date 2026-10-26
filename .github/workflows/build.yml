@@ -2,15 +2,16 @@ name: Build
 
 on:
   push:
-    paths-ignore:
-      - '*.md'
-      - '*LICENSE'
-      - 'docs/**'
+    branches: ['**']
   pull_request:
     paths-ignore:
       - '*.md'
       - '*LICENSE'
       - 'docs/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('run-{0}', github.run_id) }}
@@ -73,14 +74,18 @@ jobs:
       - name: Generate AppImage
         run: ci/build-appimage.sh
 
+      - name: Package release
+        run: |
+          mkdir -p upload
+          cp build/install/Dusklight-*.AppImage "upload/Dusklight-linux-${{matrix.artifact_arch}}.AppImage"
+          tar -cJf "upload/Dusklight-linux-${{matrix.artifact_arch}}-sdk-debug.tar.xz" -C build/install sdk debug.tar.xz
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: dusklight-${{env.APP_VERSION}}-linux-${{matrix.preset}}-${{matrix.artifact_arch}}
-          path: |
-            build/install/Dusklight-*.AppImage
-            build/install/debug.tar.*
-            build/install/sdk/
+          path: upload/
+          if-no-files-found: error
 
   build-apple:
     name: Build Apple (${{matrix.name}})
@@ -147,14 +152,18 @@ jobs:
       - name: Build
         run: cmake --build --preset ${{matrix.preset}}
 
+      # Archive on macOS to preserve bundle symlinks and executable permissions.
+      - name: Package release
+        run: |
+          mkdir -p upload
+          tar -czf "upload/Dusklight-${{matrix.artifact_name}}.tar.gz" -C build/install .
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: dusklight-${{env.APP_VERSION}}-${{matrix.artifact_name}}
-          path: |
-            build/install/Dusklight.app
-            build/install/debug.tar.*
-            build/install/sdk/
+          path: upload/
+          if-no-files-found: error
 
   build-android:
     name: Build Android (${{matrix.name}})
@@ -196,7 +205,7 @@ jobs:
           packages: platform-tools
 
       - name: Install Android SDK packages
-        run: sdkmanager "platforms;android-36" "build-tools;36.1.0" "ndk;${ANDROID_NDK_VERSION}"
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0" "ndk;${ANDROID_NDK_VERSION}"
 
       - name: Install Rust Android target
         run: |
@@ -217,19 +226,47 @@ jobs:
 
       - name: Build APK
         working-directory: platforms/android
-        run: ./gradlew :app:assembleRelease --rerun-tasks
+        run: bash ./gradlew :app:assembleRelease
 
       - name: Stage artifacts
         run: |
           mkdir -p upload/sdk
           cp build/*/stub-android-*.so upload/sdk/
-          cp platforms/android/app/build/outputs/apk/release/app-${{matrix.abi}}-release-unsigned.apk upload/
+          cp platforms/android/app/build/outputs/apk/release/app-${{matrix.abi}}-release-unsigned.apk upload/Dusklight-android-${{matrix.artifact_arch}}-unsigned.apk
+          tar -czf upload/Dusklight-android-${{matrix.artifact_arch}}-sdk.tar.gz -C upload sdk
+          rm -r upload/sdk
+
+      - name: Sign and verify APK
+        if: github.event_name != 'pull_request'
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: dusklight
+        run: |
+          set -euo pipefail
+          : "${ANDROID_KEYSTORE_BASE64:?Missing ANDROID_KEYSTORE_BASE64 repository secret}"
+          : "${ANDROID_KEYSTORE_PASSWORD:?Missing ANDROID_KEYSTORE_PASSWORD repository secret}"
+          keystore="$RUNNER_TEMP/dusklight-release.p12"
+          trap 'rm -f "$keystore"' EXIT
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > "$keystore"
+          unsigned="upload/Dusklight-android-${{matrix.artifact_arch}}-unsigned.apk"
+          signed="upload/Dusklight-android-${{matrix.artifact_arch}}.apk"
+          tools="$ANDROID_HOME/build-tools/36.0.0"
+          "$tools/zipalign" -f -P 16 4 "$unsigned" "$RUNNER_TEMP/aligned.apk"
+          "$tools/apksigner" sign --ks "$keystore" --ks-type PKCS12 \
+            --ks-key-alias "$ANDROID_KEY_ALIAS" \
+            --ks-pass env:ANDROID_KEYSTORE_PASSWORD --key-pass env:ANDROID_KEYSTORE_PASSWORD \
+            --out "$signed" "$RUNNER_TEMP/aligned.apk"
+          "$tools/apksigner" verify --verbose "$signed"
+          "$tools/zipalign" -c -P 16 4 "$signed"
+          rm "$unsigned"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: dusklight-${{env.APP_VERSION}}-android-${{matrix.artifact_arch}}
           path: upload/
+          if-no-files-found: error
 
   build-windows:
     name: Build Windows (${{matrix.name}})
@@ -287,14 +324,62 @@ jobs:
       - name: Build
         run: cmake --build --preset x-windows-ci-${{matrix.preset}}
 
+      - name: Package release
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path upload -Force | Out-Null
+          Compress-Archive -Path build/install/* -DestinationPath upload/Dusklight-windows-${{matrix.artifact_arch}}.zip
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: dusklight-${{env.APP_VERSION}}-win32-msvc-${{matrix.artifact_arch}}
-          path: |
-            build/install/*.exe
-            build/install/*.dll
-            build/install/res/
-            build/install/mods/
-            build/install/debug.7z
-            build/install/sdk/
+          path: upload/
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    if: github.event_name != 'pull_request'
+    needs: [build-linux, build-apple, build-android, build-windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GH_REPO: ${{ github.repository }}
+      COMMIT_SHA: ${{ github.sha }}
+      RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+    steps:
+      - name: Download all packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: dusklight-*
+          path: release
+          merge-multiple: true
+
+      - name: Publish packages for this commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="build-$COMMIT_SHA"
+          cd release
+          sha256sum -- * > SHA256SUMS.txt
+          cat > "$RUNNER_TEMP/release-notes.md" <<EOF
+          Compilation automatique du commit $COMMIT_SHA.
+
+          - Android ARM64 : APK signée et installable, interface en français.
+          - Linux x86_64 et ARM64 : AppImage et SDK/symboles de débogage.
+          - Windows x86_64 et ARM64 : archives ZIP avec ressources, mods et SDK.
+          - macOS ARM64 et x86_64 : archives de l'application, des ressources et du SDK.
+          - iOS ARM64 : application à signer avant installation sur un appareil.
+
+          Vérifiez les téléchargements avec SHA256SUMS.txt.
+          [Détails de la compilation]($RUN_URL).
+          EOF
+          if ! gh release view "$tag" > /dev/null 2>&1; then
+            gh release create "$tag" --target "$COMMIT_SHA" --draft --prerelease \
+              --title "Build ${COMMIT_SHA:0:12}" --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
+          gh release upload "$tag" ./* --clobber
+          gh release edit "$tag" --draft=false --prerelease \
+            --notes-file "$RUNNER_TEMP/release-notes.md"

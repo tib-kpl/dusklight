@@ -1,4 +1,5 @@
 #include "bool_button.hpp"
+#include "localization.hpp"
 
 #include "Z2AudioLib/Z2SeMgr.h"
 #include "m_Do/m_Do_audio.h"
@@ -36,7 +37,7 @@ Rml::String BoolButton::format_value() {
         }
     }
 
-    return mGetValue() ? "On" : "Off";
+    return mGetValue() ? android_text("On", "Activé") : android_text("Off", "Désactivé");
 }
 
 bool BoolButton::handle_nav_command(NavCommand cmd) {

@@ -11,6 +11,7 @@ ext.borealisAndroid = [
     namespace: 'dev.twilitrealm.dusk',
     applicationId: 'dev.twilitrealm.dusk',
     abis: ['arm64-v8a'],
+    compileSdk: 36,
     assets: [
         [
             from: new File(duskRepoDir, 'res'),
@@ -27,6 +28,10 @@ ext.borealisAndroid = [
 ]
 
 apply from: new File(borealisDir, 'platforms/android/gradle/borealis-application.gradle')
+
+android {
+    buildToolsVersion = '36.0.0'
+}
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])

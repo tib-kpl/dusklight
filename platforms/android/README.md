@@ -4,7 +4,7 @@ This directory contains Dusklight's Android shell built on top of Borealis.
 
 ## Prerequisites
 
-- Android SDK with Platform 37 installed (`ANDROID_HOME`)
+- Android SDK with Platform 36 and Build Tools 36.0.0 installed (`ANDROID_HOME`)
 - Android NDK version used by CMake presets (`ANDROID_NDK_VERSION`)
 - JDK 17+
 
@@ -55,3 +55,39 @@ Supported extras:
 
 The legacy `dusk_args` and `dusk_argv` names remain accepted during the shell
 transition.
+
+## French APK interface
+
+The Android interface uses French for settings, help text, controller configuration,
+touch layout editing, graphics tuning, save management, and launch dialogs.
+The game language is selected separately and depends on the languages available on
+your disc. Desktop and Apple interfaces retain their original English text.
+
+## Automatic builds and releases
+
+Every branch push runs `.github/workflows/build.yml`, including documentation-only
+commits. You can also run **Build** manually from the Actions page. Pull requests
+build the same platforms without publishing a release or using signing secrets.
+
+After all seven builds succeed, a prerelease tagged `build-<full commit SHA>` is
+published with Android ARM64, Linux x86_64/ARM64, Windows x86_64/ARM64, macOS
+x86_64/ARM64, and iOS ARM64 downloads. Each release includes SHA-256 checksums.
+Rerunning a workflow updates the same release. Each push builds its tip commit;
+push commits individually if you need a separate release for every intermediate
+commit.
+
+Linux packages include AppImages. Windows ZIPs contain the executable and its
+runtime files. Apple tarballs preserve application bundle permissions and symlinks;
+the iOS application still needs your own code signing before device installation.
+SDK and debug files from the original builds are retained.
+
+Android releases use a persistent PKCS12 signing key (alias `dusklight`), so later
+APKs can update earlier installations. Configure these repository Actions secrets:
+
+- `ANDROID_KEYSTORE_BASE64`: Base64 of the PKCS12 keystore.
+- `ANDROID_KEYSTORE_PASSWORD`: Password for both the keystore and its key.
+
+Keep a secure backup of the signing key and password. They must never be committed.
+For this fork, the initial local backup is in the ignored `.android-signing/`
+directory. Pull request artifacts contain an unsigned APK; published releases
+contain the signed APK, verified with `apksigner` and `zipalign`.

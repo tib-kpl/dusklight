@@ -1,4 +1,5 @@
 #include "saves_window.hpp"
+#include "localization.hpp"
 
 #include "aurora/lib/window.hpp"
 #include "bool_button.hpp"
@@ -105,11 +106,15 @@ save_manager::ValueResult<Context> context_for_save(const std::string& saveName)
     if (data::is_data_path_restart_pending() ||
         (!state.activeDiscPath.empty() && state.configuredDiscPath != state.activeDiscPath))
     {
-        return {{.message = "Restart required before managing saves."}, {}};
+        return {{.message = android_text("Restart required before managing saves.",
+                     "Redémarrez avant de gérer les sauvegardes.")},
+            {}};
     }
     auto identity = save_manager::identity_for_disc(state.configuredDiscInfo, saveName);
     if (!state.configuredDiscCanLaunch || !identity) {
-        return {{.message = "A disc must be configured before managing saves."}, {}};
+        return {{.message = android_text("A disc must be configured before managing saves.",
+                     "Choisissez un disque avant de gérer les sauvegardes.")},
+            {}};
     }
     const auto preferredKind = getSettings().backend.cardFileType.getValue() == 0 ?
                                    save_manager::StorageKind::RawImage :
@@ -181,7 +186,7 @@ void export_artifact(save_manager::ExportArtifact artifact, std::string pattern)
         .parentWindow = aurora::window::get_sdl_window(),
         .sourceLocation = borealis::io::fs_path_to_string(artifact.path),
         .suggestedName = artifact.suggestedName,
-        .filters = {{"Save file", std::move(pattern)}},
+        .filters = {{android_text("Save file", "Fichier de sauvegarde"), std::move(pattern)}},
     };
     borealis::file_select::export_file(
         std::move(options), [artifact = std::move(artifact)](borealis::file_select::Result result) {
@@ -189,8 +194,9 @@ void export_artifact(save_manager::ExportArtifact artifact, std::string pattern)
             if (result.status != borealis::file_select::Status::Selected &&
                 result.status != borealis::file_select::Status::Canceled)
             {
-                show_message("Export Failed",
-                    result.message.empty() ? "The save file could not be exported." :
+                show_message(android_text("Export Failed", "Échec de l'exportation"),
+                    result.message.empty() ? android_text("The save file could not be exported.",
+                                                 "Impossible d'exporter la sauvegarde.") :
                                              result.message,
                     true);
             }
@@ -200,13 +206,15 @@ void export_artifact(save_manager::ExportArtifact artifact, std::string pattern)
 void begin_export(const std::string& saveName, bool includeModData) {
     auto context = context_for_save(saveName);
     if (!context) {
-        show_message("Export Failed", context.result.message, true);
+        show_message(
+            android_text("Export Failed", "Échec de l'exportation"), context.result.message, true);
         return;
     }
     auto artifact =
         save_manager::build_export(context.value.storage, context.value.identity, includeModData);
     if (!artifact) {
-        show_message("Export Failed", artifact.result.message, true);
+        show_message(
+            android_text("Export Failed", "Échec de l'exportation"), artifact.result.message, true);
         return;
     }
     export_artifact(std::move(artifact.value), includeModData ? "dusksave" : "gci");
@@ -215,12 +223,14 @@ void begin_export(const std::string& saveName, bool includeModData) {
 void begin_raw_export(const std::string& saveName) {
     auto context = context_for_save(saveName);
     if (!context) {
-        show_message("Export Failed", context.result.message, true);
+        show_message(
+            android_text("Export Failed", "Échec de l'exportation"), context.result.message, true);
         return;
     }
     auto artifact = save_manager::raw_card_export(context.value.storage);
     if (!artifact) {
-        show_message("Export Failed", artifact.result.message, true);
+        show_message(
+            android_text("Export Failed", "Échec de l'exportation"), artifact.result.message, true);
         return;
     }
     export_artifact(std::move(artifact.value), "raw");
@@ -261,40 +271,55 @@ void perform_import(
     ++s_refreshGeneration;
     std::string message;
     if (result) {
-        message = replacingRawImage  ? "The memory card image was imported." :
-                  importedCount == 1 ? fmt::format("The {} save was imported.", importedLabel) :
-                                       fmt::format("{} saves were imported.", importedCount);
+        message = replacingRawImage  ? android_text("The memory card image was imported.",
+                                           "L'image de la carte mémoire a été importée.") :
+                  importedCount == 1 ? fmt::format(android_text("The {} save was imported.",
+                                                       "La sauvegarde {} a été importée."),
+                                           importedLabel) :
+                                       fmt::format(android_text("{} saves were imported.",
+                                                       "{} sauvegardes ont été importées."),
+                                           importedCount);
     } else if (importedCount != 0) {
-        message = fmt::format("{} save{} imported before the operation stopped: {}", importedCount,
-            importedCount == 1 ? " was" : "s were", result.message);
+        message = fmt::format(android_text("{} save{} imported before the operation stopped: {}",
+                                  "{} sauvegarde{} avant l'interruption de l'opération : {}"),
+            importedCount,
+            importedCount == 1 ? android_text(" was", " a été importée") :
+                                 android_text("s were", "s ont été importées"),
+            result.message);
     } else {
         message = result.message;
     }
-    show_message("Save Files", std::move(message), !result, &finish_import_flow);
+    show_message(android_text("Save Files", "Sauvegardes"), std::move(message), !result,
+        &finish_import_flow);
 }
 
 void confirm_import(Artifact artifact) {
     const bool raw = artifact.kind == save_manager::ArtifactKind::Raw;
     const bool hasBundledModData = artifact.kind == save_manager::ArtifactKind::DuskSave;
     if (!raw && !utils::is_valid_save_name(artifact.header.saveName)) {
-        show_message("Import Failed", "The save contains an unsupported filename.", true,
-            &finish_import_flow);
+        show_message(android_text("Import Failed", "Échec de l'importation"),
+            android_text("The save contains an unsupported filename.",
+                "La sauvegarde contient un nom de fichier non pris en charge."),
+            true, &finish_import_flow);
         return;
     }
     auto context =
         context_for_save(raw ? gamemode::kDefaultGameModeSaveName : artifact.header.saveName);
     if (!context) {
-        show_message("Import Failed", context.result.message, true, &finish_import_flow);
+        show_message(android_text("Import Failed", "Échec de l'importation"),
+            context.result.message, true, &finish_import_flow);
         return;
     }
     const auto compatibility =
         raw ? save_manager::DiscCompatibility::Exact :
               save_manager::disc_compatibility(artifact.header, context.value.identity);
     const bool changingVersion = (compatibility == save_manager::DiscCompatibility::RegionChange ||
-                                 compatibility == save_manager::DiscCompatibility::PlatformChange);
+                                  compatibility == save_manager::DiscCompatibility::PlatformChange);
     if (compatibility == save_manager::DiscCompatibility::Incompatible) {
-        show_message("Import Failed", "This save does not match the configured disc.", true,
-            &finish_import_flow);
+        show_message(android_text("Import Failed", "Échec de l'importation"),
+            android_text("This save does not match the configured disc.",
+                "Cette sauvegarde ne correspond pas au disque sélectionné."),
+            true, &finish_import_flow);
         return;
     }
 
@@ -303,13 +328,16 @@ void confirm_import(Artifact artifact) {
         auto extracted = save_manager::extract_raw_saves(
             artifact, context.value.identity.game, context.value.identity.maker);
         if (!extracted) {
-            show_message("Import Failed", extracted.result.message, true, &finish_import_flow);
+            show_message(android_text("Import Failed", "Échec de l'importation"),
+                extracted.result.message, true, &finish_import_flow);
             return;
         }
         if (extracted.value.empty()) {
-            show_message("Import Failed",
-                "The card image does not contain saves for the configured disc.", true,
-                &finish_import_flow);
+            show_message(android_text("Import Failed", "Échec de l'importation"),
+                android_text("The card image does not contain saves for the configured disc.",
+                    "L'image de la carte mémoire ne contient aucune sauvegarde pour le disque "
+                    "sélectionné."),
+                true, &finish_import_flow);
             return;
         }
         for (auto& save : extracted.value) {
@@ -328,7 +356,8 @@ void confirm_import(Artifact artifact) {
         const auto& target = items->front().context;
         auto info = save_manager::inspect_save(target.storage, target.identity);
         if (!info) {
-            show_message("Import Failed", info.result.message, true, &finish_import_flow);
+            show_message(android_text("Import Failed", "Échec de l'importation"),
+                info.result.message, true, &finish_import_flow);
             return;
         }
         replacingSave = info.value.present;
@@ -340,12 +369,14 @@ void confirm_import(Artifact artifact) {
     };
     auto keepModData = std::make_shared<bool>(false);
     auto modal = std::make_unique<Modal>(Modal::Props{
-        .title = "Import Save",
+        .title = android_text("Import Save", "Importer une sauvegarde"),
         .actions =
             {
-                {.label = "Cancel", .onPressed = cancel},
+                {.label = android_text("Cancel", "Annuler"), .onPressed = cancel},
                 {
-                    .label = changingVersion ? "Import Anyway" : "Import",
+                    .label = changingVersion ?
+                                 android_text("Import Anyway", "Importer quand même") :
+                                 android_text("Import", "Importer"),
                     .onPressed =
                         [items, keepModData, hasBundledModData](Modal& modal) {
                             const auto action = hasBundledModData ? ModDataAction::Replace :
@@ -362,11 +393,17 @@ void confirm_import(Artifact artifact) {
         .icon = "warning",
     });
     if (replacingRawImage) {
-        modal->set_body_text(
+        modal->set_body_text(android_text(
             "Replace the entire memory card image? All saves on the current card will be "
-            "replaced. Existing saves for the configured disc will be backed up first.");
+            "replaced. Existing saves for the configured disc will be backed up first.",
+            "Remplacer toute l'image de la carte mémoire ? Toutes les sauvegardes de la carte "
+            "seront remplacées. Celles du disque sélectionné seront d'abord sauvegardées dans une "
+            "copie de secours."));
     } else if (multiple) {
-        modal->set_body_text("Choose the saves to import. Existing saves will be backed up first.");
+        modal->set_body_text(
+            android_text("Choose the saves to import. Existing saves will be backed up first.",
+                "Choisissez les sauvegardes à importer. Une copie de secours des sauvegardes "
+                "existantes sera d'abord créée."));
         for (size_t i = 0; i < items->size(); ++i) {
             modal->content_pane().add_child<BoolButton>(BoolButton::Props{
                 .key = mode_label((*items)[i].context.identity.saveName),
@@ -375,15 +412,22 @@ void confirm_import(Artifact artifact) {
             });
         }
     } else {
-        const auto* regionMessage = changingVersion ?
-                                        " This save is from a different region or "
-                                        "platform than the configured disc and may "
-                                        "not work correctly." :
-                                        "";
-        modal->set_body(
-            fmt::format("{} the <b>{}</b> save?{}{}", replacingSave ? "Replace" : "Import",
-                escape(mode_label(items->front().context.identity.saveName)), regionMessage,
-                replacingSave ? " A backup will be made first." : ""));
+        const auto* regionMessage =
+            changingVersion ?
+                android_text(" This save is from a different region or "
+                             "platform than the configured disc and may "
+                             "not work correctly.",
+                    " Cette sauvegarde provient d'une autre région ou plateforme que le disque "
+                    "sélectionné et peut ne pas fonctionner correctement.") :
+                "";
+        modal->set_body(fmt::format(
+            android_text("{} the <b>{}</b> save?{}{}", "{} la sauvegarde <b>{}</b> ?{}{}"),
+            replacingSave ? android_text("Replace", "Remplacer") :
+                            android_text("Import", "Importer"),
+            escape(mode_label(items->front().context.identity.saveName)), regionMessage,
+            replacingSave ? android_text(" A backup will be made first.",
+                                " Une copie de secours sera créée au préalable.") :
+                            ""));
     }
     if (!replacingRawImage) {
         Rml::Element* unregistered = nullptr;
@@ -391,8 +435,9 @@ void confirm_import(Artifact artifact) {
             if (!is_registered_save(item.context.identity.saveName)) {
                 if (unregistered == nullptr) {
                     unregistered = append(modal->content_pane().root(), "text-list");
-                    append_text_element(
-                        unregistered, "small", "No registered game mode uses these saves.");
+                    append_text_element(unregistered, "small",
+                        android_text("No registered game mode uses these saves.",
+                            "Aucun mode de jeu enregistré n'utilise ces sauvegardes."));
                 }
                 append_text_element(unregistered, "item", item.context.identity.saveName);
             }
@@ -400,7 +445,8 @@ void confirm_import(Artifact artifact) {
     }
     if (!items->front().artifact.declaredMods.empty()) {
         auto* modData = append(modal->content_pane().root(), "text-list");
-        append_text_element(modData, "heading", "Included mod data:");
+        append_text_element(
+            modData, "heading", android_text("Included mod data:", "Données de mods incluses :"));
         for (const auto& mod : items->front().artifact.declaredMods) {
             append_text_element(modData, "item", fmt::format("{} {}", mod.id, mod.version));
         }
@@ -408,7 +454,8 @@ void confirm_import(Artifact artifact) {
     if (!hasBundledModData) {
         auto& pane = modal->content_pane();
         pane.add_child<BoolButton>(BoolButton::Props{
-            .key = "Keep existing mod data",
+            .key =
+                android_text("Keep existing mod data", "Conserver les données de mods existantes"),
             .getValue = [keepModData] { return *keepModData; },
             .setValue = [keepModData](bool value) { *keepModData = value; },
         });
@@ -425,8 +472,10 @@ void import_dialog_callback(borealis::file_select::Result result) {
         return;
     }
     if (result.status != borealis::file_select::Status::Selected || result.locations.empty()) {
-        show_message("Import Failed",
-            result.message.empty() ? "The save file picker could not be opened." : result.message,
+        show_message(android_text("Import Failed", "Échec de l'importation"),
+            result.message.empty() ? android_text("The save file picker could not be opened.",
+                                         "Impossible d'ouvrir le sélecteur de sauvegarde.") :
+                                     result.message,
             true);
         return;
     }
@@ -442,7 +491,8 @@ void process_next_import() {
     s_pendingImports.pop_front();
     auto artifact = save_manager::read_artifact(location);
     if (!artifact) {
-        show_message("Import Failed", artifact.result.message, true, &finish_import_flow);
+        show_message(android_text("Import Failed", "Échec de l'importation"),
+            artifact.result.message, true, &finish_import_flow);
         return;
     }
     confirm_import(std::move(artifact.value));
@@ -452,7 +502,7 @@ void begin_import() {
     borealis::file_select::open_file(
         {
             .parentWindow = aurora::window::get_sdl_window(),
-            .filters = {{"Save files", "gci;raw;dusksave"}},
+            .filters = {{android_text("Save files", "Fichiers de sauvegarde"), "gci;raw;dusksave"}},
         },
         &import_dialog_callback);
 }
@@ -460,11 +510,11 @@ void begin_import() {
 class SaveListHeader final : public Component {
 public:
     SaveListHeader(Rml::Element* parent, bool available) : Component{append(parent, "header")} {
-        append_text_element(mRoot, "section-heading", "Save Files");
+        append_text_element(mRoot, "section-heading", android_text("Save Files", "Sauvegardes"));
         add_child<IconButton>(
             IconButton::Props{
                 .icon = "sim_card_download",
-                .label = "Import Save",
+                .label = android_text("Import Save", "Importer une sauvegarde"),
                 .isDisabled = [available] { return !available || borealis::file_select::busy(); },
             })
             .on_pressed(&begin_import);
@@ -474,23 +524,26 @@ public:
 void begin_delete(const std::string& saveName) {
     auto context = context_for_save(saveName);
     if (!context) {
-        show_message("Delete Failed", context.result.message, true);
+        show_message(
+            android_text("Delete Failed", "Échec de la suppression"), context.result.message, true);
         return;
     }
     if (auto* host = top_document()) {
         host->push(std::make_unique<Modal>(Modal::Props{
-            .title = "Delete Save",
-            .bodyRml =
-                fmt::format("Delete the <b>{}</b> save and mod data? A backup will be made first.",
-                    escape(mode_label(saveName))),
+            .title = android_text("Delete Save", "Supprimer la sauvegarde"),
+            .bodyRml = fmt::format(
+                android_text("Delete the <b>{}</b> save and mod data? A backup will be made first.",
+                    "Supprimer la sauvegarde <b>{}</b> et les données de mods ? Une copie de "
+                    "secours sera créée au préalable."),
+                escape(mode_label(saveName))),
             .actions =
                 {
                     {
-                        .label = "Cancel",
+                        .label = android_text("Cancel", "Annuler"),
                         .onPressed = &dismiss_modal,
                     },
                     {
-                        .label = "Delete",
+                        .label = android_text("Delete", "Supprimer"),
                         .onPressed =
                             [context = context.value](Modal& modal) {
                                 modal.pop();
@@ -500,7 +553,9 @@ void begin_delete(const std::string& saveName) {
                                 {
                                     ++s_refreshGeneration;
                                 } else {
-                                    show_message("Delete Save", result.message, true);
+                                    show_message(
+                                        android_text("Delete Save", "Supprimer la sauvegarde"),
+                                        result.message, true);
                                 }
                             },
                     },
@@ -549,7 +604,7 @@ private:
         listPane.root()->SetClass("list", true);
         auto& detailPane = add_child<Pane>(content, Pane::Type::Uncontrolled);
         detailPane.root()->SetClass("detail", true);
-        listPane.add_section("Backups");
+        listPane.add_section(android_text("Backups", "Copies de secours"));
 
         auto context = context_for_save(mSaveName);
         if (!context) {
@@ -563,7 +618,7 @@ private:
         }
 
         if (backups.value.empty()) {
-            detailPane.add_section("No backups yet");
+            detailPane.add_section(android_text("No backups yet", "Aucune copie de secours"));
             return;
         }
         if (std::ranges::none_of(backups.value,
@@ -596,67 +651,39 @@ private:
         Pane& pane, Context context, save_manager::BackupInfo backup, const std::string& label) {
         append_save_header(pane.root(), mode_label(context.identity.saveName), label);
         append_text_element(pane.root(), "file-path", backup.name);
-        pane.add_button("Restore This Backup...").on_pressed([this, context, path = backup.path] {
-            if (auto* host = top_document()) {
-                host->push(std::make_unique<Modal>(Modal::Props{
-                    .title = "Restore Backup",
-                    .bodyText = "Replace the current save and mod data with this backup?",
-                    .actions =
-                        {
-                            {
-                                .label = "Cancel",
-                                .onPressed = &dismiss_modal,
-                            },
-                            {
-                                .label = "Restore",
-                                .onPressed =
-                                    [this, context, path](Modal& modal) {
-                                        modal.pop();
-                                        const Result result = save_manager::restore_backup(
-                                            context.storage, context.identity, path);
-                                        if (result) {
-                                            ++s_refreshGeneration;
-                                            rebuild_content();
-                                        }
-                                        show_message("Restore Backup",
-                                            result ? "The backup was restored." : result.message,
-                                            !result);
-                                    },
-                            },
-                        },
-                    .onDismiss = &dismiss_modal,
-                    .icon = "warning",
-                }));
-            }
-        });
-        auto& deleteButton = pane.add_button("Delete This Backup...");
-        deleteButton.root()->SetClass("danger", true);
-        deleteButton.on_pressed(
-            [this, storage = context.storage, path = backup.path, name = backup.name] {
+        pane.add_button(android_text("Restore This Backup...", "Restaurer cette copie..."))
+            .on_pressed([this, context, path = backup.path] {
                 if (auto* host = top_document()) {
                     host->push(std::make_unique<Modal>(Modal::Props{
-                        .title = "Delete Backup",
-                        .bodyRml = fmt::format("Delete <b>{}</b>?", escape(name)),
+                        .title = android_text("Restore Backup", "Restaurer une copie de secours"),
+                        .bodyText =
+                            android_text("Replace the current save and mod data with this backup?",
+                                "Remplacer la sauvegarde actuelle et les données de mods par cette "
+                                "copie de secours ?"),
                         .actions =
                             {
                                 {
-                                    .label = "Cancel",
+                                    .label = android_text("Cancel", "Annuler"),
                                     .onPressed = &dismiss_modal,
                                 },
                                 {
-                                    .label = "Delete",
+                                    .label = android_text("Restore", "Restaurer"),
                                     .onPressed =
-                                        [this, storage, path](Modal& modal) {
+                                        [this, context, path](Modal& modal) {
                                             modal.pop();
-                                            const Result result =
-                                                save_manager::delete_backup(storage, path);
+                                            const Result result = save_manager::restore_backup(
+                                                context.storage, context.identity, path);
                                             if (result) {
                                                 ++s_refreshGeneration;
-                                                mSelectedPath.clear();
                                                 rebuild_content();
-                                            } else {
-                                                show_message("Delete Backup", result.message, true);
                                             }
+                                            show_message(android_text("Restore Backup",
+                                                             "Restaurer une copie de secours"),
+                                                result ?
+                                                    android_text("The backup was restored.",
+                                                        "La copie de secours a été restaurée.") :
+                                                    result.message,
+                                                !result);
                                         },
                                 },
                             },
@@ -665,6 +692,46 @@ private:
                     }));
                 }
             });
+        auto& deleteButton =
+            pane.add_button(android_text("Delete This Backup...", "Supprimer cette copie..."));
+        deleteButton.root()->SetClass("danger", true);
+        deleteButton.on_pressed([this, storage = context.storage, path = backup.path,
+                                    name = backup.name] {
+            if (auto* host = top_document()) {
+                host->push(std::make_unique<Modal>(Modal::Props{
+                    .title = android_text("Delete Backup", "Supprimer une copie de secours"),
+                    .bodyRml = fmt::format(
+                        android_text("Delete <b>{}</b>?", "Supprimer <b>{}</b> ?"), escape(name)),
+                    .actions =
+                        {
+                            {
+                                .label = android_text("Cancel", "Annuler"),
+                                .onPressed = &dismiss_modal,
+                            },
+                            {
+                                .label = android_text("Delete", "Supprimer"),
+                                .onPressed =
+                                    [this, storage, path](Modal& modal) {
+                                        modal.pop();
+                                        const Result result =
+                                            save_manager::delete_backup(storage, path);
+                                        if (result) {
+                                            ++s_refreshGeneration;
+                                            mSelectedPath.clear();
+                                            rebuild_content();
+                                        } else {
+                                            show_message(android_text("Delete Backup",
+                                                             "Supprimer une copie de secours"),
+                                                result.message, true);
+                                        }
+                                    },
+                            },
+                        },
+                    .onDismiss = &dismiss_modal,
+                    .icon = "warning",
+                }));
+            }
+        });
     }
 
     std::string mSaveName;
@@ -680,47 +747,58 @@ void open_backups(std::string saveName) {
 void create_backup(const std::string& saveName) {
     auto context = context_for_save(saveName);
     if (!context) {
-        show_message("Create Backup", context.result.message, true);
+        show_message(android_text("Create Backup", "Créer une copie de secours"),
+            context.result.message, true);
         return;
     }
-    show_result("Create Backup", "Backup successfully created.",
+    show_result(android_text("Create Backup", "Créer une copie de secours"),
+        android_text("Backup successfully created.", "Copie de secours créée."),
         save_manager::create_backup(context.value.storage, context.value.identity));
 }
 
 void open_save_folder(const std::string& saveName) {
     auto context = context_for_save(saveName);
     if (!context) {
-        show_message("Open Save Folder", context.result.message, true);
+        show_message(android_text("Open Save Folder", "Ouvrir le dossier des sauvegardes"),
+            context.result.message, true);
         return;
     }
     const auto folder = context.value.storage.kind == save_manager::StorageKind::GciDirectory ?
                             context.value.storage.path :
                             context.value.storage.path.parent_path();
     if (!data::manager().open_folder(folder)) {
-        show_message(
-            "Open Save Folder", "The save folder could not be opened in the file browser.", true);
+        show_message(android_text("Open Save Folder", "Ouvrir le dossier des sauvegardes"),
+            android_text("The save folder could not be opened in the file browser.",
+                "Impossible d'ouvrir le dossier des sauvegardes dans l'explorateur de fichiers."),
+            true);
     }
 }
 
 void confirm_delete_mod_data(Context context, std::string id) {
     if (auto* host = top_document()) {
         host->push(std::make_unique<Modal>(Modal::Props{
-            .title = "Delete Mod Data",
-            .bodyRml = fmt::format("Delete saved data for <b>{}</b>? If a game save exists, a "
-                                   "backup will be made first.",
+            .title = android_text("Delete Mod Data", "Supprimer les données de mods"),
+            .bodyRml = fmt::format(
+                android_text("Delete saved data for <b>{}</b>? If a game save exists, a "
+                             "backup will be made first.",
+                    "Supprimer les données de <b>{}</b> ? Si une sauvegarde du jeu existe, une "
+                    "copie de secours sera d'abord créée."),
                 escape(id)),
             .actions =
                 {
                     {
-                        .label = "Cancel",
+                        .label = android_text("Cancel", "Annuler"),
                         .onPressed = &dismiss_modal,
                     },
                     {
-                        .label = "Delete",
+                        .label = android_text("Delete", "Supprimer"),
                         .onPressed =
                             [context = std::move(context), id = std::move(id)](Modal& modal) {
                                 modal.pop();
-                                show_result("Delete Mod Data", "The mod data was deleted.",
+                                show_result(android_text(
+                                                "Delete Mod Data", "Supprimer les données de mods"),
+                                    android_text("The mod data was deleted.",
+                                        "Les données de mods ont été supprimées."),
                                     save_manager::delete_mod_data(
                                         context.storage, context.identity, id));
                             },
@@ -740,10 +818,12 @@ public:
         append_text_element(info, "heading", mod.id);
         append_text_element(info, "small",
             fmt::format("{} · {}", format_bytes(mod.size),
-                installed_mod(mod.id) ? "Installed" : "Not installed"));
+                installed_mod(mod.id) ? android_text("Installed", "Installé") :
+                                        android_text("Not installed", "Non installé")));
         mDelete = &add_child<IconButton>(IconButton::Props{
             .icon = "delete",
-            .label = fmt::format("Delete {} data", mod.id),
+            .label =
+                fmt::format(android_text("Delete {} data", "Supprimer les données de {}"), mod.id),
             .isDisabled = [] { return borealis::file_select::busy(); },
         });
         mDelete->root()->SetClass("danger", true);
@@ -760,14 +840,16 @@ void build_save_detail(Pane& pane, const std::string& saveName) {
     const std::string modeLabel = mode_label(saveName);
     auto context = context_for_save(saveName);
     if (!context) {
-        append_save_header(pane.root(), modeLabel, "Unavailable");
+        append_save_header(pane.root(), modeLabel, android_text("Unavailable", "Indisponible"));
         append_text_element(pane.root(), "small", context.result.message);
         return;
     }
 
     const auto& storage = context.value.storage;
     const std::string storageLabel =
-        storage.kind == save_manager::StorageKind::GciDirectory ? "GCI folder" : "Raw memory card";
+        storage.kind == save_manager::StorageKind::GciDirectory ?
+            android_text("GCI folder", "Dossier GCI") :
+            android_text("Raw memory card", "Image brute de carte mémoire");
     append_save_header(pane.root(), modeLabel, fmt::format("{} · Card A", storageLabel));
     const bool registered = is_registered_save(saveName);
     if (!registered) {
@@ -775,7 +857,8 @@ void build_save_detail(Pane& pane, const std::string& saveName) {
         auto* icon =
             append_text_element(association, "icon", material_icon("indeterminate_question_box"));
         icon->SetAttribute("aria-hidden", "true");
-        append_text(association, " No registered game mode uses this save.");
+        append_text(association, android_text(" No registered game mode uses this save.",
+                                     " Aucun mode de jeu enregistré n'utilise cette sauvegarde."));
     }
 
     auto info = save_manager::inspect_save(storage, context.value.identity);
@@ -784,34 +867,42 @@ void build_save_detail(Pane& pane, const std::string& saveName) {
     } else {
         auto* overview = append(pane.root(), "save-overview");
         overview->SetClass(info.value.present ? "present" : "empty", true);
-        append_text_element(
-            overview, "heading", info.value.present ? "Save present" : "No save file");
-        const auto detail = info.value.present ?
-                                fmt::format("{} · Modified {}", format_bytes(info.value.size),
-                                    save_manager::format_gc_time(info.value.modifiedTime)) :
-                            registered ? "Import a save or start this mode to create one." :
-                                         "Restore a backup or import this save to use it again.";
+        append_text_element(overview, "heading",
+            info.value.present ? android_text("Save present", "Sauvegarde présente") :
+                                 android_text("No save file", "Aucune sauvegarde"));
+        const auto detail =
+            info.value.present ? fmt::format("{} · Modified {}", format_bytes(info.value.size),
+                                     save_manager::format_gc_time(info.value.modifiedTime)) :
+            registered ? android_text("Import a save or start this mode to create one.",
+                             "Importez une sauvegarde ou lancez ce mode pour en créer une.") :
+                         android_text("Restore a backup or import this save to use it again.",
+                             "Restaurez une copie de secours ou importez cette sauvegarde pour la "
+                             "réutiliser.");
         append_text_element(overview, "small", detail);
     }
 
     const bool savePresent = info && info.value.present;
-    pane.add_section("Transfer");
+    pane.add_section(android_text("Transfer", "Transfert"));
     append_text_element(pane.root(), "small",
-        "Export a portable Dusklight archive with mod data, or a standard GCI for other tools.");
+        android_text(
+            "Export a portable Dusklight archive with mod data, or a standard GCI for other tools.",
+            "Exporte une archive Dusklight avec les données de mods, ou un fichier GCI standard "
+            "pour d'autres outils."));
     auto& exportButton = pane.add_button(ControlledButton::Props{
-        .text = "Export Save...",
+        .text = android_text("Export Save...", "Exporter la sauvegarde..."),
         .isDisabled = [savePresent] { return !savePresent || borealis::file_select::busy(); },
     });
     exportButton.on_pressed([anchor = exportButton.root(), saveName] {
         push_document(std::make_unique<ContextMenu>(
             anchor, std::vector<ContextMenu::Item>{
                         {
-                            .text = "Save + mod data (.dusksave)",
+                            .text = android_text("Save + mod data (.dusksave)",
+                                "Sauvegarde et données de mods (.dusksave)"),
                             .icon = "folder_open",
                             .onPressed = [saveName] { begin_export(saveName, true); },
                         },
                         {
-                            .text = "Save only (.gci)",
+                            .text = android_text("Save only (.gci)", "Sauvegarde seule (.gci)"),
                             .icon = "description",
                             .onPressed = [saveName] { begin_export(saveName, false); },
                         },
@@ -819,25 +910,29 @@ void build_save_detail(Pane& pane, const std::string& saveName) {
     });
 
     if (info && !info.value.mods.empty()) {
-        pane.add_section(fmt::format("Mod Data ({})", info.value.mods.size()));
+        pane.add_section(fmt::format(
+            android_text("Mod Data ({})", "Données de mods ({})"), info.value.mods.size()));
         for (const auto& mod : info.value.mods) {
             pane.add_child<ModDataRow>(context.value, mod);
         }
     }
 
-    pane.add_section("Storage and Recovery");
+    pane.add_section(android_text("Storage and Recovery", "Stockage et récupération"));
     append_text_element(pane.root(), "small",
-        fmt::format(
-            "The {} most recent backups are preserved.", save_manager::kDefaultBackupRetention));
+        fmt::format(android_text("The {} most recent backups are preserved.",
+                        "Les {} copies de secours les plus récentes sont conservées."),
+            save_manager::kDefaultBackupRetention));
     auto& backupButton = pane.add_button(ControlledButton::Props{
-        .text = "Create Backup",
+        .text = android_text("Create Backup", "Créer une copie de secours"),
         .isDisabled = [savePresent] { return !savePresent || borealis::file_select::busy(); },
     });
     backupButton.on_pressed([saveName] { create_backup(saveName); });
-    pane.add_button("View Backups").on_pressed([saveName] { open_backups(saveName); });
+    pane.add_button(android_text("View Backups", "Voir les copies de secours"))
+        .on_pressed([saveName] { open_backups(saveName); });
     if (storage.kind == save_manager::StorageKind::RawImage) {
         pane.add_button(ControlledButton::Props{
-                            .text = "Export Full Card Image (.raw)",
+                            .text = android_text("Export Full Card Image (.raw)",
+                                "Exporter la carte mémoire complète (.raw)"),
                             .isDisabled =
                                 [path = storage.path] {
                                     std::error_code ec;
@@ -848,14 +943,15 @@ void build_save_detail(Pane& pane, const std::string& saveName) {
             .on_pressed([saveName] { begin_raw_export(saveName); });
     }
     if (data::manager().capabilities().canOpenFolder) {
-        pane.add_button("Open Save Folder").on_pressed([saveName] { open_save_folder(saveName); });
+        pane.add_button(android_text("Open Save Folder", "Ouvrir le dossier des sauvegardes"))
+            .on_pressed([saveName] { open_save_folder(saveName); });
     }
     append_text_element(pane.root(), "file-path", data::abbreviated_path_string(storage.path));
 
     if (savePresent) {
-        pane.add_section("Danger Zone");
+        pane.add_section(android_text("Danger Zone", "Zone à risque"));
         auto& deleteButton = pane.add_button(ControlledButton::Props{
-            .text = "Delete Save...",
+            .text = android_text("Delete Save...", "Supprimer la sauvegarde..."),
             .isDisabled = [] { return borealis::file_select::busy(); },
         });
         deleteButton.root()->SetClass("danger", true);
@@ -939,7 +1035,7 @@ void SavesWindow::update() {
 
 void add_save_files_control(Pane& leftPane, Pane& rightPane) {
     auto& button = leftPane.add_button(ControlledButton::Props{
-        .text = "Open Save Manager",
+        .text = android_text("Open Save Manager", "Gérer les sauvegardes"),
         .isDisabled =
             [] {
                 const auto& state = prelaunch_state();
@@ -954,7 +1050,9 @@ void add_save_files_control(Pane& leftPane, Pane& rightPane) {
         }
     }),
         rightPane, [](Pane& pane) {
-            pane.add_text("Import, export, back up, and remove saves for the configured disc.");
+            pane.add_text(android_text(
+                "Import, export, back up, and remove saves for the configured disc.",
+                "Importez, exportez, copiez et supprimez les sauvegardes du disque sélectionné."));
         });
 }
 
@@ -962,8 +1060,9 @@ void import_save_location(std::string location) {
     if (!is_prelaunch_open()) {
         push_toast({
             .type = "warning",
-            .title = "Save Import",
-            .content = "Reset to the main menu before importing saves.",
+            .title = android_text("Save Import", "Importation de sauvegardes"),
+            .content = android_text("Reset to the main menu before importing saves.",
+                "Revenez au menu principal avant d'importer des sauvegardes."),
             .duration = std::chrono::seconds{4},
         });
         return;

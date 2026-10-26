@@ -1,4 +1,5 @@
 #include "graphics_tuner.hpp"
+#include "localization.hpp"
 
 #include "button.hpp"
 
@@ -52,9 +53,9 @@ Rml::String format_internal_resolution(int value) {
 Rml::String format_resampler(int value) {
     switch (static_cast<Resampler>(value)) {
     case Resampler::Bilinear:
-        return "Bilinear";
+        return android_text("Bilinear", "Bilinéaire");
     case Resampler::Area:
-        return "Area";
+        return android_text("Area", "Moyenne de surface");
     default:
         return "";
     }
@@ -63,9 +64,9 @@ Rml::String format_resampler(int value) {
 Rml::String format_post_process_mode(int value) {
     switch (static_cast<BloomMode>(value)) {
     case BloomMode::Off:
-        return "Off";
+        return android_text("Off", "Désactivé");
     case BloomMode::Classic:
-        return "Classic";
+        return android_text("Classic", "Classique");
     case BloomMode::Dusk:
         return "Dusklight";
     default:
@@ -73,11 +74,17 @@ Rml::String format_post_process_mode(int value) {
     }
 }
 
-Rml::String format_times(int value) { return fmt::format("{}×", value); }
+Rml::String format_times(int value) {
+    return fmt::format("{}×", value);
+}
 
-Rml::String format_percent(int value) { return fmt::format("{}%", value); }
+Rml::String format_percent(int value) {
+    return fmt::format("{}%", value);
+}
 
-Rml::String format_bool(int value) { return value ? "On" : "Off"; }
+Rml::String format_bool(int value) {
+    return value ? android_text("On", "Activé") : android_text("Off", "Désactivé");
+}
 
 template <typename T>
 int read_cvar(const ConfigVar<T>& var) {
@@ -100,8 +107,8 @@ void write_cvar(ConfigVar<T>& var, int value) {
 }
 
 template <auto Var, typename Min, typename Max, typename Def>
-const GraphicsSetting& bind(Min min, Max max, Def def, int step, Rml::String (*label)(int),
-    bool watchSize = false) {
+const GraphicsSetting& bind(
+    Min min, Max max, Def def, int step, Rml::String (*label)(int), bool watchSize = false) {
     static const GraphicsSetting desc{
         .min = static_cast<int>(min),
         .max = static_cast<int>(max),
@@ -249,33 +256,35 @@ GraphicsTuner::GraphicsTuner(GraphicsTunerProps props)
         append_text(description, props.helpText);
     }
     if (auto* carouselParent = mDocument->GetElementById("carousel-container")) {
-        mCarousel = &add_component<SteppedCarousel>(carouselParent,
-            SteppedCarousel::Props{
-                .min = mSetting.min,
-                .max = mSetting.max,
-                .step = mSetting.step,
-                .getValue = [this] { return mSetting.read(); },
-                .onChange = [this](int value) { mSetting.set(value); },
-                .formatValue = [this](int value) { return mSetting.label(value); },
-            });
+        mCarousel = &add_component<SteppedCarousel>(
+            carouselParent, SteppedCarousel::Props{
+                                .min = mSetting.min,
+                                .max = mSetting.max,
+                                .step = mSetting.step,
+                                .getValue = [this] { return mSetting.read(); },
+                                .onChange = [this](int value) { mSetting.set(value); },
+                                .formatValue = [this](int value) { return mSetting.label(value); },
+                            });
     }
 
     if (auto* footer = mDocument->GetElementById("footer")) {
-        auto& returnButton = add_component<Button>(footer, "\xE2\x86\x90 Return", "footer-button")
+        auto& returnButton = add_component<Button>(
+            footer, android_text("\xE2\x86\x90 Return", "← Retour"), "footer-button")
                                  .on_pressed([this] { pop(); });
         returnButton.root()->SetClass("return", true);
-        auto& resetButton =
-            add_component<Button>(footer, "Reset to default", "footer-button").on_pressed([this] {
-                mDoAud_seStartMenu(kSoundItemChange);
-                reset_default();
-            });
+        auto& resetButton = add_component<Button>(
+            footer, android_text("Reset to default", "Valeurs par défaut"), "footer-button")
+                                .on_pressed([this] {
+                                    mDoAud_seStartMenu(kSoundItemChange);
+                                    reset_default();
+                                });
         resetButton.root()->SetClass("reset", true);
     }
 
     if (mCarousel != nullptr) {
         if (const char* name = mSetting.cvarName()) {
-            mSubscription = config::subscribe(name,
-                [this](config::ConfigVarBase&, const void*) { mCarousel->refresh(); });
+            mSubscription = config::subscribe(
+                name, [this](config::ConfigVarBase&, const void*) { mCarousel->refresh(); });
         }
         mCarousel->refresh();
         if (mSetting.watchesRenderSize) {

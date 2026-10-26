@@ -6,6 +6,10 @@
 __pycache__
 .mypy_cache
 .cache/
+.gradle/
+
+# Local Android release signing material (back up outside the repository)
+.android-signing/
 
 # Original files
 orig/*/*

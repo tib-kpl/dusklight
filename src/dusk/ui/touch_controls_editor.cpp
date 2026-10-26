@@ -1,4 +1,5 @@
 #include "touch_controls_editor.hpp"
+#include "localization.hpp"
 
 #include "modal.hpp"
 
@@ -51,7 +52,8 @@ Rml::String touch_controls_editor_document_source() {
     <link type="text/rcss" href="res/rml/touch_controls_editor.rcss" />
 </head>
 <body id="root" class="touch-editor">
-)RML"} + Rml::String{fragment.data(), fragment.size()} + Rml::String{R"RML(
+)RML"} + Rml::String{fragment.data(), fragment.size()} +
+           Rml::String{R"RML(
     <selection-frame id="editor-selection-frame">
         <resize-handle id="editor-handle-left" class="edge horizontal left" />
         <resize-handle id="editor-handle-right" class="edge horizontal right" />
@@ -108,6 +110,9 @@ TouchControlsEditor::TouchControlsEditor()
       mResetButton(mDocument != nullptr ? mDocument->GetElementById("editor-reset") : nullptr),
       mCancelButton(mDocument != nullptr ? mDocument->GetElementById("editor-cancel") : nullptr),
       mWorkingLayout(getSettings().game.touchControlsLayout.getValue()) {
+    set_text_content(mSaveButton, android_text("Save", "Enregistrer"));
+    set_text_content(mResetButton, android_text("Reset", "Réinitialiser"));
+    set_text_content(mCancelButton, android_text("Cancel", "Annuler"));
     mWorkingLayout.version = ControlLayout::Version;
 
     const auto controls = touch_layout_controls();
@@ -204,8 +209,8 @@ void TouchControlsEditor::bind_control_events() noexcept {
         }
 
         listen(element, aurora::rmlui::TouchStartEvent, [this, i](Rml::Event& event) {
-            if (begin_edit(i, EditHandle::Move, touch_event_position(event), true,
-                    touch_event_id(event)))
+            if (begin_edit(
+                    i, EditHandle::Move, touch_event_position(event), true, touch_event_id(event)))
             {
                 event.StopPropagation();
             }
@@ -229,26 +234,27 @@ void TouchControlsEditor::bind_handle_events() noexcept {
             continue;
         }
 
-        listen(element, aurora::rmlui::TouchStartEvent, [this, handle = binding.handle](
-                                                        Rml::Event& event) {
-            if (!control_valid(mSelectedIndex)) {
-                return;
-            }
-            if (begin_edit(mSelectedIndex, handle, touch_event_position(event), true,
-                    touch_event_id(event)))
-            {
-                event.StopPropagation();
-            }
-        });
-        listen(element, Rml::EventId::Mousedown, [this, handle = binding.handle](Rml::Event& event) {
-            const s32 button = event.GetParameter("button", -1);
-            if (button != 0 || !control_valid(mSelectedIndex)) {
-                return;
-            }
-            if (begin_edit(mSelectedIndex, handle, mouse_event_position(event), false)) {
-                event.StopPropagation();
-            }
-        });
+        listen(element, aurora::rmlui::TouchStartEvent,
+            [this, handle = binding.handle](Rml::Event& event) {
+                if (!control_valid(mSelectedIndex)) {
+                    return;
+                }
+                if (begin_edit(mSelectedIndex, handle, touch_event_position(event), true,
+                        touch_event_id(event)))
+                {
+                    event.StopPropagation();
+                }
+            });
+        listen(
+            element, Rml::EventId::Mousedown, [this, handle = binding.handle](Rml::Event& event) {
+                const s32 button = event.GetParameter("button", -1);
+                if (button != 0 || !control_valid(mSelectedIndex)) {
+                    return;
+                }
+                if (begin_edit(mSelectedIndex, handle, mouse_event_position(event), false)) {
+                    event.StopPropagation();
+                }
+            });
     }
 }
 
@@ -294,8 +300,7 @@ void TouchControlsEditor::sync_control_layouts() noexcept {
             element.root->SetPseudoClass("hidden", false);
         }
         apply_control_box_if_changed(element.root, element.layout.appliedBox, layout.box);
-        apply_control_dock_classes(
-            element.root, touch_control_dock_anchor(layout.visual, docSize));
+        apply_control_dock_classes(element.root, touch_control_dock_anchor(layout.visual, docSize));
         apply_control_transform_if_changed(
             element.root, element.layout.appliedTransform, element.layout.layoutScale);
     }
@@ -367,7 +372,8 @@ void TouchControlsEditor::store_props(
     props.w = std::max(props.w, 1.f);
     props.h = std::max(props.h, 1.f);
     props.scale = std::max(props.scale, kMinScale);
-    props = encode_control_props(visual, docSize, props, touch_control_dock_anchor(visual, docSize));
+    props =
+        encode_control_props(visual, docSize, props, touch_control_dock_anchor(visual, docSize));
     mWorkingLayout.version = ControlLayout::Version;
     mWorkingLayout.controls[std::string{touch_layout_controls()[index].layoutId}] = props;
     sync_control_layouts();
@@ -390,9 +396,8 @@ void TouchControlsEditor::restore_active_control() noexcept {
     sync_selection_frame();
 }
 
-bool TouchControlsEditor::begin_edit(
-    size_t index, EditHandle handle, Rml::Vector2f positionPx, bool touch,
-    SDL_FingerID touchId) noexcept {
+bool TouchControlsEditor::begin_edit(size_t index, EditHandle handle, Rml::Vector2f positionPx,
+    bool touch, SDL_FingerID touchId) noexcept {
     if (!control_valid(index) || mPointerEdit.active) {
         return false;
     }
@@ -522,18 +527,15 @@ ControlRect TouchControlsEditor::rect_for_edit(
     const float desiredW = left ? fixed.x - pointerDp.x : pointerDp.x - fixed.x;
     const float desiredH = top ? fixed.y - pointerDp.y : pointerDp.y - fixed.y;
     const auto minSize = min_visual_size(edit.index);
-    const float minRatio =
-        std::max(minSize.x / std::max(edit.startVisual.w, 1.f),
-            minSize.y / std::max(edit.startVisual.h, 1.f));
+    const float minRatio = std::max(minSize.x / std::max(edit.startVisual.w, 1.f),
+        minSize.y / std::max(edit.startVisual.h, 1.f));
     const float maxW = left ? fixed.x : docSize.w - fixed.x;
     const float maxH = top ? fixed.y : docSize.h - fixed.y;
-    const float maxRatio =
-        std::max(minRatio, std::min(maxW / std::max(edit.startVisual.w, 1.f),
-                                maxH / std::max(edit.startVisual.h, 1.f)));
-    const float ratio =
-        std::clamp(std::max(desiredW / std::max(edit.startVisual.w, 1.f),
-                       desiredH / std::max(edit.startVisual.h, 1.f)),
-            minRatio, maxRatio);
+    const float maxRatio = std::max(minRatio, std::min(maxW / std::max(edit.startVisual.w, 1.f),
+                                                  maxH / std::max(edit.startVisual.h, 1.f)));
+    const float ratio = std::clamp(std::max(desiredW / std::max(edit.startVisual.w, 1.f),
+                                       desiredH / std::max(edit.startVisual.h, 1.f)),
+        minRatio, maxRatio);
 
     rect.w = edit.startVisual.w * ratio;
     rect.h = edit.startVisual.h * ratio;
@@ -594,13 +596,15 @@ void TouchControlsEditor::save_layout() {
 void TouchControlsEditor::request_reset() {
     auto dismiss = [](Modal& modal) { modal.pop(); };
     push(std::make_unique<Modal>(Modal::Props{
-        .title = "Reset Touch Layout?",
-        .bodyText =
+        .title = android_text("Reset Touch Layout?", "Réinitialiser les commandes tactiles ?"),
+        .bodyText = android_text(
             "Reset controls to their default layout. This will not be saved until you press Save.",
+            "Rétablit la disposition par défaut des commandes. Appuyez sur Enregistrer pour "
+            "sauvegarder ce changement."),
         .actions =
             {
                 ModalAction{
-                    .label = "Reset",
+                    .label = android_text("Reset", "Réinitialiser"),
                     .onPressed =
                         [this, dismiss](Modal& modal) {
                             reset_working_layout();
@@ -609,7 +613,7 @@ void TouchControlsEditor::request_reset() {
                         },
                 },
                 ModalAction{
-                    .label = "Cancel",
+                    .label = android_text("Cancel", "Annuler"),
                     .onPressed = dismiss,
                 },
             },

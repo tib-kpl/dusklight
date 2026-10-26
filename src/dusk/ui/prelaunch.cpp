@@ -1,4 +1,5 @@
 #include "prelaunch.hpp"
+#include "localization.hpp"
 
 #include "dusk/app_info.hpp"
 #include "dusk/config.hpp"
@@ -85,8 +86,9 @@ const Rml::String kDocumentSource = R"RML(
 )RML";
 
 const std::vector<borealis::file_select::Filter> kDiscFileFilters{
-    {"Game Disc Images", "iso;gcm;ciso;gcz;nfs;rvz;wbfs;wia;tgc"},
-    {"All Files", "*"},
+    {android_text("Game Disc Images", "Images de disque de jeu"),
+        "iso;gcm;ciso;gcz;nfs;rvz;wbfs;wia;tgc"},
+    {android_text("All Files", "Tous les fichiers"), "*"},
 };
 
 struct DiscVerificationResult {
@@ -243,23 +245,35 @@ void open_update_release() {
 std::string get_error_msg(iso::ValidationError error) {
     switch (error) {
     default:
-        return "The selected disc image could not be validated.";
+        return android_text("The selected disc image could not be validated.",
+            "Impossible de valider l'image du disque sélectionnée.");
     case iso::ValidationError::IOError:
-        return "Unable to read the selected file.";
+        return android_text(
+            "Unable to read the selected file.", "Impossible de lire le fichier sélectionné.");
     case iso::ValidationError::InvalidImage:
-        return "The selected file is not a valid disc image.";
+        return android_text("The selected file is not a valid disc image.",
+            "Le fichier sélectionné n'est pas une image de disque valide.");
     case iso::ValidationError::WrongGame:
-        return "The selected game is not supported by Dusklight.";
+        return android_text("The selected game is not supported by Dusklight.",
+            "Le jeu sélectionné n'est pas pris en charge par Dusklight.");
     case iso::ValidationError::WrongVersion:
-        return "Dusklight does not currently support the Wii's Korean version.";
+        return android_text("Dusklight does not currently support the Wii's Korean version.",
+            "Dusklight ne prend pas encore en charge la version coréenne sur Wii.");
     case iso::ValidationError::Canceled:
-        return "Disc verification was canceled. Dusklight cannot guarantee the selected disc "
-               "image is compatible.";
+        return android_text(
+            "Disc verification was canceled. Dusklight cannot guarantee the selected disc "
+            "image is compatible.",
+            "La vérification a été annulée. Dusklight ne peut pas garantir la compatibilité de "
+            "l'image du disque sélectionnée.");
     case iso::ValidationError::HashMismatch:
-        return "The selected disc image did not pass hash verification. It may be corrupt or "
-               "modified.";
+        return android_text(
+            "The selected disc image did not pass hash verification. It may be corrupt or "
+            "modified.",
+            "L'image du disque a échoué à la vérification d'intégrité. Elle peut être corrompue ou "
+            "modifiée.");
     case iso::ValidationError::Success:
-        return "The selected disc image is valid.";
+        return android_text(
+            "The selected disc image is valid.", "L'image du disque sélectionnée est valide.");
     }
 }
 
@@ -344,7 +358,8 @@ public:
         auto* header = append(mDialog, "modal-header");
 
         auto* title = append(header, "modal-title");
-        append_text(title, "Verifying disc image");
+        append_text(
+            title, android_text("Verifying disc image", "Vérification de l'image du disque"));
 
         auto* icon = append(header, "icon");
         icon->SetClass("verifying", true);
@@ -362,7 +377,7 @@ public:
         mDetail = append(content, "small");
 
         auto* actions = append(mDialog, "modal-actions");
-        mCancelButton = std::make_unique<Button>(actions, "Cancel");
+        mCancelButton = std::make_unique<Button>(actions, android_text("Cancel", "Annuler"));
         mCancelButton->root()->SetClass("modal-btn", true);
         mCancelButton->on_pressed([this] { request_cancel(); });
 
@@ -411,7 +426,7 @@ private:
         mCancelRequested = true;
         sDiscVerificationTask->status.cancelRequested.store(true, std::memory_order_relaxed);
         if (mCancelButton != nullptr) {
-            mCancelButton->set_text("Cancelling...");
+            mCancelButton->set_text(android_text("Cancelling...", "Annulation..."));
             mCancelButton->set_disabled(true);
         }
     }
@@ -443,7 +458,8 @@ private:
                 mProgress->SetAttribute("value", 0.f);
             }
             if (mDetail != nullptr) {
-                set_text_content(mDetail, "Opening disc image...");
+                set_text_content(mDetail,
+                    android_text("Opening disc image...", "Ouverture de l'image du disque..."));
             }
             return;
         }
@@ -501,11 +517,11 @@ std::vector<const gamemode::GameMode*> carousel_game_modes() {
 
 std::string game_mode_button_text() {
     if (prelaunch_state().activeDiscPath.empty()) {
-        return "Select Disc Image";
+        return android_text("Select Disc Image", "Choisir une image du disque");
     }
     const auto* currentGameMode = gamemode::getGameModeManager().getCurrentGameMode();
     if (currentGameMode == nullptr || currentGameMode->getId() == gamemode::kVanillaGameModeId) {
-        return "Play";
+        return android_text("Play", "Jouer");
     }
     return currentGameMode->getFullName();
 }
@@ -691,8 +707,9 @@ void try_push_verification_modal(Document& host) {
     };
 
     if (!state.pendingDiscPath.empty()) {
-        const Rml::String bodyRml =
-            escape(state.errorString) + "<br/><br/>You may proceed at your own risk.";
+        const Rml::String bodyRml = escape(state.errorString) +
+                                    android_text("<br/><br/>You may proceed at your own risk.",
+                                        "<br/><br/>Vous pouvez continuer à vos risques et périls.");
         auto acceptHashMismatch = [](Modal& modal) {
             auto& st = prelaunch_state();
             std::string path = std::move(st.pendingDiscPath);
@@ -707,16 +724,17 @@ void try_push_verification_modal(Document& host) {
             modal.pop();
         };
         host.push(std::make_unique<Modal>(Modal::Props{
-            .title = "Disc verification warning",
+            .title = android_text(
+                "Disc verification warning", "Avertissement de vérification du disque"),
             .bodyRml = bodyRml,
             .actions =
                 {
                     ModalAction{
-                        .label = "Cancel",
+                        .label = android_text("Cancel", "Annuler"),
                         .onPressed = dismiss,
                     },
                     ModalAction{
-                        .label = "Continue anyway",
+                        .label = android_text("Continue anyway", "Continuer quand même"),
                         .onPressed = acceptHashMismatch,
                     },
                 },
@@ -728,7 +746,7 @@ void try_push_verification_modal(Document& host) {
     }
 
     host.push(std::make_unique<Modal>(Modal::Props{
-        .title = "Disc verification error",
+        .title = android_text("Disc verification error", "Erreur de vérification du disque"),
         .bodyText = state.errorString,
         .actions =
             {
@@ -751,14 +769,17 @@ void try_push_language_unavailable_modal(Document& host) {
     state.pendingLanguageUnavailableNotice = false;
 
     const Rml::String bodyRml = fmt::format(
-        "<b>{}</b> is not available on this disc. Language has been reset to <b>{}</b>.",
+        android_text(
+            "<b>{}</b> is not available on this disc. Language has been reset to <b>{}</b>.",
+            "La langue <b>{}</b> n'est pas disponible sur ce disque. La langue a été rétablie sur "
+            "<b>{}</b>."),
         language::language_name(state.unavailableLanguage),
         language::language_name(getSettings().game.language.getValue()));
 
     auto dismiss = [](Modal& modal) { modal.pop(); };
 
     host.push(std::make_unique<Modal>(Modal::Props{
-        .title = "Language unavailable",
+        .title = android_text("Language unavailable", "Langue indisponible"),
         .bodyRml = bodyRml,
         .actions =
             {
@@ -940,7 +961,8 @@ void Prelaunch::build_menu_buttons() {
         apply_intro_animation(playButton->root(), "delay-1");
         mMenuButtons.push_back(std::move(playButton));
 
-        mMenuButtons.push_back(std::make_unique<Button>(menuList, "Settings"));
+        mMenuButtons.push_back(
+            std::make_unique<Button>(menuList, android_text("Settings", "Paramètres")));
         mMenuButtons.back()->on_pressed([this] {
             mRestartSuppressed = false;
             push(std::make_unique<SettingsWindow>(true));
@@ -956,7 +978,7 @@ void Prelaunch::build_menu_buttons() {
         });
         apply_intro_animation(mMenuButtons.back()->root(), "delay-3");
 
-        mMenuButtons.push_back(std::make_unique<Button>(menuList, "Quit"));
+        mMenuButtons.push_back(std::make_unique<Button>(menuList, android_text("Quit", "Quitter")));
         mMenuButtons.back()->on_pressed([] { IsRunning = false; });
         apply_intro_animation(mMenuButtons.back()->root(), "delay-4");
     }
@@ -975,11 +997,11 @@ void Prelaunch::show() {
         std::vector<ModalAction> actions;
         if constexpr (SupportsProcessRestart) {
             actions.push_back(ModalAction{
-                .label = "Restart later",
+                .label = android_text("Restart later", "Redémarrer plus tard"),
                 .onPressed = dismiss,
             });
             actions.push_back(ModalAction{
-                .label = "Restart now",
+                .label = android_text("Restart now", "Redémarrer maintenant"),
                 .onPressed = [](Modal&) { RequestRestart(); },
             });
         } else {
@@ -989,13 +1011,20 @@ void Prelaunch::show() {
             });
         }
         push(std::make_unique<Modal>(Modal::Props{
-            .title = "Apply Options",
+            .title = android_text("Apply Options", "Appliquer les options"),
             .bodyRml =
                 SupportsProcessRestart ?
-                    "A restart is required to apply selected options.<br/><br/>Restart now to "
-                    "apply them immediately?" :
-                    "A restart is required to apply selected options.<br/><br/>Close and reopen "
-                    "Dusklight to apply them.",
+                    android_text(
+                        "A restart is required to apply selected options.<br/><br/>Restart now to "
+                        "apply them immediately?",
+                        "Un redémarrage est nécessaire pour appliquer les options "
+                        "sélectionnées.<br/><br/>Redémarrer maintenant ?") :
+                    android_text("A restart is required to apply selected options.<br/><br/>Close "
+                                 "and reopen "
+                                 "Dusklight to apply them.",
+                        "Un redémarrage est nécessaire pour appliquer les options "
+                        "sélectionnées.<br/><br/>Fermez puis rouvrez Dusklight pour les "
+                        "appliquer."),
             .actions = std::move(actions),
             .onDismiss = dismiss,
         }));
@@ -1054,22 +1083,27 @@ void Prelaunch::update() {
     if (mDiscStatus != nullptr && discStatusLabel != nullptr) {
         if (!activeDiscLoaded) {
             mDiscStatus->RemoveAttribute("status");
-            set_text_content(discStatusLabel, "No disc image found.");
+            set_text_content(discStatusLabel,
+                android_text("No disc image found.", "Aucune image du disque trouvée."));
         } else if (discRestartPending) {
             mDiscStatus->SetAttribute("status", "pending");
-            set_text_content(discStatusLabel, "Pending restart.");
+            set_text_content(
+                discStatusLabel, android_text("Pending restart.", "Redémarrage en attente."));
         } else if (state.configuredDiscValidation == iso::ValidationError::Success) {
             mDiscStatus->SetAttribute("status", "good");
-            set_text_content(discStatusLabel, "Disc ready.");
+            set_text_content(discStatusLabel, android_text("Disc ready.", "Disque prêt."));
         } else if (state.configuredDiscValidation == iso::ValidationError::HashMismatch) {
             mDiscStatus->SetAttribute("status", "mismatch");
-            set_text_content(discStatusLabel, "Disc hash mismatch.");
+            set_text_content(discStatusLabel,
+                android_text("Disc hash mismatch.", "Intégrité du disque incorrecte."));
         } else if (canLaunchConfiguredDisc) {
             mDiscStatus->SetAttribute("status", "unknown");
-            set_text_content(discStatusLabel, "Disc not verified.");
+            set_text_content(
+                discStatusLabel, android_text("Disc not verified.", "Disque non vérifié."));
         } else {
             mDiscStatus->SetAttribute("status", "bad");
-            set_text_content(discStatusLabel, "Disc unavailable.");
+            set_text_content(
+                discStatusLabel, android_text("Disc unavailable.", "Disque indisponible."));
         }
     }
     if (mDiscDetail != nullptr) {
@@ -1079,7 +1113,7 @@ void Prelaunch::update() {
 
             switch (state.activeDiscInfo.platform) {
             case iso::Platform::Unknown:
-                innerRML += "Unknown";
+                innerRML += android_text("Unknown", "Inconnu");
                 break;
             case iso::Platform::GameCube:
                 innerRML += "GameCube";
@@ -1108,7 +1142,7 @@ void Prelaunch::update() {
                 innerRML += "KOR";
                 break;
             default:
-                innerRML += "Unknown";
+                innerRML += android_text("Unknown", "Inconnu");
                 break;
             }
             set_text_content(mDiscDetail, innerRML);
@@ -1133,7 +1167,8 @@ void Prelaunch::update() {
 
         if (sUpdateCheck) {
             mUpdateStatus->SetAttribute("state", "checking");
-            set_text_content(mUpdateMessage, "Checking for updates...");
+            set_text_content(mUpdateMessage,
+                android_text("Checking for updates...", "Recherche de mises à jour..."));
         } else if (!sUpdateCheckResult.has_value() ||
                    sUpdateCheckResult->status == borealis::update::Status::UpToDate)
         {
@@ -1141,14 +1176,17 @@ void Prelaunch::update() {
             set_text_content(mUpdateMessage, "");
         } else if (sUpdateCheckResult->status == borealis::update::Status::UpdateAvailable) {
             mUpdateStatus->SetAttribute("state", "available");
-            set_text_content(mUpdateMessage, "Update available!");
+            set_text_content(
+                mUpdateMessage, android_text("Update available!", "Mise à jour disponible !"));
             if (mUpdateDownloadLabel != nullptr) {
-                set_text_content(mUpdateDownloadLabel,
-                    fmt::format("Download {}", update_release_label(sUpdateCheckResult->latest)));
+                set_text_content(
+                    mUpdateDownloadLabel, fmt::format(android_text("Download {}", "Télécharger {}"),
+                                              update_release_label(sUpdateCheckResult->latest)));
             }
         } else {
             mUpdateStatus->SetAttribute("state", "failed");
-            set_text_content(mUpdateMessage, "Failed to check for updates");
+            set_text_content(mUpdateMessage, android_text("Failed to check for updates",
+                                                 "Échec de la recherche de mises à jour"));
         }
     }
 

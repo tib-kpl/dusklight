@@ -1,4 +1,5 @@
 #include "menu_bar.hpp"
+#include "localization.hpp"
 
 #include "achievements.hpp"
 #include "editor.hpp"
@@ -22,9 +23,9 @@
 #include "f_pc/f_pc_name.h"
 #include "m_Do/m_Do_audio.h"
 
+#include <RmlUi/Core.h>
 #include <aurora/rmlui.hpp>
 #include <imgui.h>
-#include <RmlUi/Core.h>
 
 #include <cmath>
 
@@ -71,35 +72,42 @@ MenuBar::MenuBar()
 }
 
 void MenuBar::build_tabs() {
-    mTabBar->add_tab("Settings", [this] { push(std::make_unique<SettingsWindow>()); });
+    mTabBar->add_tab(android_text("Settings", "Paramètres"),
+        [this] { push(std::make_unique<SettingsWindow>()); });
 
     if (getSettings().backend.enableAdvancedSettings) {
-        mTabBar->add_tab("Warp", [this] { push(std::make_unique<WarpWindow>()); });
-        mTabBar->add_tab("Editor", [this] { push(std::make_unique<EditorWindow>()); });
+        mTabBar->add_tab(android_text("Warp", "Téléportation"),
+            [this] { push(std::make_unique<WarpWindow>()); });
+        mTabBar->add_tab(
+            android_text("Editor", "Éditeur"), [this] { push(std::make_unique<EditorWindow>()); });
     }
 
     // Only allow us to access achievements if we are playing on a game mode that uses them
     if (gamemode::getGameModeManager().isCurrentGameMode(gamemode::kVanillaGameModeId) ||
         gamemode::getGameModeManager().isCurrentGameMode(speedrun::kSpeedrunGameModeId))
     {
-        mTabBar->add_tab("Achievements", [this] { push(std::make_unique<AchievementsWindow>()); });
+        mTabBar->add_tab(android_text("Achievements", "Succès"),
+            [this] { push(std::make_unique<AchievementsWindow>()); });
     }
     mModsButton = &mTabBar->add_tab("Mods", [this] { push(std::make_unique<ModsWindow>()); });
     for (auto& tab : mods::svc::ui_mod_menu_tabs()) {
         mTabBar->add_tab(tab.label, std::move(tab.onSelected));
     }
 
-    mTabBar->add_tab("Reset", [this] {
+    mTabBar->add_tab(android_text("Reset", "Réinitialiser"), [this] {
         mTabBar->set_active_tab(-1);
         const auto dismiss = [](Modal& modal) { modal.pop(); };
         push(std::make_unique<Modal>(Modal::Props{
-            .title = "Reset Game",
-            .bodyRml = "Unsaved progress will be lost.<br/>"
-                       "<modal-tip>Tip: You can also reset by holding Start+X+B</modal-tip>",
+            .title = android_text("Reset Game", "Réinitialiser le jeu"),
+            .bodyRml =
+                android_text("Unsaved progress will be lost.<br/>"
+                             "<modal-tip>Tip: You can also reset by holding Start+X+B</modal-tip>",
+                    "La progression non sauvegardée sera perdue.<br/><modal-tip>Astuce : maintenez "
+                    "Start+X+B pour réinitialiser.</modal-tip>"),
             .actions =
                 {
                     ModalAction{
-                        .label = "Cancel",
+                        .label = android_text("Cancel", "Annuler"),
                         .onPressed =
                             [this, dismiss](Modal& modal) {
                                 mDoAud_seStartMenu(kSoundWindowClose);
@@ -107,7 +115,7 @@ void MenuBar::build_tabs() {
                             },
                     },
                     ModalAction{
-                        .label = "Reset",
+                        .label = android_text("Reset", "Réinitialiser"),
                         .onPressed =
                             [this, dismiss](Modal& modal) {
                                 mDoAud_seStartMenu(kSoundClick);
@@ -130,16 +138,17 @@ void MenuBar::build_tabs() {
             .icon = "question-mark",
         }));
     });
-    mTabBar->add_tab("Quit", [this] {
+    mTabBar->add_tab(android_text("Quit", "Quitter"), [this] {
         mTabBar->set_active_tab(-1);
         const auto dismiss = [](Modal& modal) { modal.pop(); };
         push(std::make_unique<Modal>(Modal::Props{
-            .title = "Quit Dusklight",
-            .bodyText = "Unsaved progress will be lost.",
+            .title = android_text("Quit Dusklight", "Quitter Dusklight"),
+            .bodyText = android_text(
+                "Unsaved progress will be lost.", "La progression non sauvegardée sera perdue."),
             .actions =
                 {
                     ModalAction{
-                        .label = "Cancel",
+                        .label = android_text("Cancel", "Annuler"),
                         .onPressed =
                             [dismiss](Modal& modal) {
                                 mDoAud_seStartMenu(kSoundWindowClose);
@@ -147,7 +156,7 @@ void MenuBar::build_tabs() {
                             },
                     },
                     ModalAction{
-                        .label = "Quit",
+                        .label = android_text("Quit", "Quitter"),
                         .onPressed =
                             [dismiss](Modal& modal) {
                                 mDoAud_seStartMenu(kSoundClick);
@@ -162,7 +171,7 @@ void MenuBar::build_tabs() {
     });
 
     if (speedrun::isActive()) {
-        mTabBar->add_tab("Reset Run", [this] {
+        mTabBar->add_tab(android_text("Reset Run", "Réinitialiser la tentative"), [this] {
             mTabBar->set_active_tab(-1);
             mDoAud_seStartMenu(kSoundClick);
             speedrun::g_speedrunInfo.reset();

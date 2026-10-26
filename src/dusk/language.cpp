@@ -1,5 +1,7 @@
 #include "dusk/language.hpp"
 
+#include "dusk/ui/localization.hpp"
+
 #include "dusk/version.hpp"
 
 namespace dusk::language {
@@ -41,19 +43,19 @@ std::span<const GameLanguage> available_languages(const iso::DiscInfo& info) noe
 const char* language_name(GameLanguage language) noexcept {
     switch (language) {
     case GameLanguage::English:
-        return "English";
+        return ui::android_text("English", "Anglais");
     case GameLanguage::German:
-        return "German";
+        return ui::android_text("German", "Allemand");
     case GameLanguage::French:
-        return "French";
+        return ui::android_text("French", "Français");
     case GameLanguage::Spanish:
-        return "Spanish";
+        return ui::android_text("Spanish", "Espagnol");
     case GameLanguage::Italian:
-        return "Italian";
+        return ui::android_text("Italian", "Italien");
     case GameLanguage::Japanese:
-        return "Japanese";
+        return ui::android_text("Japanese", "Japonais");
     }
-    return "English";
+    return ui::android_text("English", "Anglais");
 }
 
 const char* msg_folder() noexcept {
