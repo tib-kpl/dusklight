@@ -324,7 +324,7 @@ jobs:
           vcpkg install freetype:${{matrix.vcpkg_arch}}-windows zstd:${{matrix.vcpkg_arch}}-windows
 
       - name: Configure CMake
-        run: cmake --preset x-windows-ci-${{matrix.preset}} -DDUSK_RELEASE_VERSION=${{env.DUSK_RELEASE_VERSION}}
+        run: cmake --preset x-windows-ci-${{matrix.preset}} "-DDUSK_RELEASE_VERSION=${{env.DUSK_RELEASE_VERSION}}"
 
       - name: Build
         run: cmake --build --preset x-windows-ci-${{matrix.preset}}
