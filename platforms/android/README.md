@@ -72,12 +72,15 @@ Every branch push runs `.github/workflows/build.yml`, including documentation-on
 commits. You can also run **Build** manually from the Actions page. Pull requests
 build the same platforms without publishing a release or using signing secrets.
 
-After all eight builds succeed, a release tagged `build-<full commit SHA>` is
+After all eight builds succeed, a numbered release tagged `v0.1.<run number>` is
 published with Android ARM64, Linux x86_64/ARM64, Windows x86_64/ARM64, macOS
 x86_64/ARM64, and iOS ARM64 downloads. Each release includes SHA-256 checksums.
 Rerunning a workflow updates the same release. Each push builds its tip commit;
 push commits individually if you need a separate release for every intermediate
-commit.
+commit. The workflow number increments automatically and is shared by all eight
+builds. The same version is embedded in the APK and application metadata, with an
+increasing Android version code. Local builds use `VERSION` by default; use
+`-DDUSK_RELEASE_VERSION=0.1.5` when configuring CMake to choose another version.
 
 Linux packages include AppImages. Windows ZIPs contain the executable and its
 runtime files. Apple tarballs preserve application bundle permissions and symlinks;

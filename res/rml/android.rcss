@@ -13,7 +13,7 @@ window content pane select-button key {
 }
 
 window content pane select-button value {
-    flex: 0 1 auto;
+    flex: 0 0 35%;
     max-width: 45%;
     white-space: normal;
     word-break: break-all;
@@ -47,6 +47,7 @@ tuner-title {
     }
 
     window content pane select-button:not(.group-button) value {
+        flex: 0 0 100%;
         max-width: 100%;
         text-align: left;
     }

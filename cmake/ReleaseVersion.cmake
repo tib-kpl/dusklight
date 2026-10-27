@@ -1,0 +1,31 @@
+include_guard(GLOBAL)
+
+set(DUSK_RELEASE_VERSION "" CACHE STRING "Release version; defaults to the VERSION file")
+if (NOT DUSK_RELEASE_VERSION)
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${CMAKE_CURRENT_LIST_DIR}/../VERSION")
+    file(READ "${CMAKE_CURRENT_LIST_DIR}/../VERSION" DUSK_RELEASE_VERSION)
+    string(STRIP "${DUSK_RELEASE_VERSION}" DUSK_RELEASE_VERSION)
+endif ()
+
+if (NOT DUSK_RELEASE_VERSION MATCHES "^([0-9]+)\\.([0-9]+)\\.([0-9]+)$")
+    message(FATAL_ERROR "DUSK_RELEASE_VERSION must be a numeric major.minor.patch version")
+endif ()
+set(_dusk_release_major "${CMAKE_MATCH_1}")
+set(_dusk_release_minor "${CMAKE_MATCH_2}")
+set(_dusk_release_patch "${CMAKE_MATCH_3}")
+
+set(BOREALIS_APP_DESCRIBE "v${DUSK_RELEASE_VERSION}")
+set(BOREALIS_APP_SHORT_VERSION "${DUSK_RELEASE_VERSION}")
+set(BOREALIS_APP_VERSION "${DUSK_RELEASE_VERSION}.0")
+set(BOREALIS_APP_VERSION_TWEAK 0)
+math(EXPR BOREALIS_APP_VERSION_CODE
+    "${_dusk_release_major} * 10000000 + ${_dusk_release_minor} * 100000 + ${_dusk_release_patch} * 1000")
+if (BOREALIS_APP_VERSION_CODE LESS 1 OR BOREALIS_APP_VERSION_CODE GREATER 2100000000)
+    message(FATAL_ERROR "Release version is outside Android's versionCode range")
+endif ()
+
+if (DEFINED ENV{GITHUB_ENV})
+    file(APPEND "$ENV{GITHUB_ENV}" "APP_VERSION=${BOREALIS_APP_DESCRIBE}\n")
+    file(APPEND "$ENV{GITHUB_ENV}" "APP_VERSION_CODE=${BOREALIS_APP_VERSION_CODE}\n")
+endif ()
+message(STATUS "Dusklight release version: ${BOREALIS_APP_DESCRIBE}")

@@ -7,6 +7,7 @@ endif ()
 
 include(extern/borealis/cmake/DetectVersion.cmake)
 borealis_detect_version()
+include(cmake/ReleaseVersion.cmake)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 project(dusklight LANGUAGES C CXX VERSION ${BOREALIS_APP_VERSION})
 

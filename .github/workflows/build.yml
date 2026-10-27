@@ -18,6 +18,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
+  DUSK_RELEASE_VERSION: 0.1.${{ github.run_number }}
   SCCACHE_GHA_ENABLED: "true"
   RUSTC_WRAPPER: "sccache"
   SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
@@ -66,7 +67,7 @@ jobs:
         run: sccache --show-stats
 
       - name: Configure CMake
-        run: cmake --preset x-linux-ci-${{matrix.preset}}
+        run: cmake --preset x-linux-ci-${{matrix.preset}} -DDUSK_RELEASE_VERSION=${{env.DUSK_RELEASE_VERSION}}
 
       - name: Build
         run: cmake --build --preset x-linux-ci-${{matrix.preset}}
@@ -151,7 +152,7 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.10
 
       - name: Configure CMake
-        run: cmake --preset ${{matrix.preset}}
+        run: cmake --preset ${{matrix.preset}} -DDUSK_RELEASE_VERSION=${{env.DUSK_RELEASE_VERSION}}
 
       - name: Build
         run: cmake --build --preset ${{matrix.preset}}
@@ -220,7 +221,7 @@ jobs:
         uses: mozilla-actions/sccache-action@v0.0.10
 
       - name: Configure CMake
-        run: cmake --preset ${{matrix.preset}}
+        run: cmake --preset ${{matrix.preset}} -DDUSK_RELEASE_VERSION=${{env.DUSK_RELEASE_VERSION}}
 
       - name: Build native library
         run: cmake --build --preset ${{matrix.preset}} --target dusklight
@@ -323,7 +324,7 @@ jobs:
           vcpkg install freetype:${{matrix.vcpkg_arch}}-windows zstd:${{matrix.vcpkg_arch}}-windows
 
       - name: Configure CMake
-        run: cmake --preset x-windows-ci-${{matrix.preset}}
+        run: cmake --preset x-windows-ci-${{matrix.preset}} -DDUSK_RELEASE_VERSION=${{env.DUSK_RELEASE_VERSION}}
 
       - name: Build
         run: cmake --build --preset x-windows-ci-${{matrix.preset}}
@@ -365,11 +366,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tag="build-$COMMIT_SHA"
+          tag="v$DUSK_RELEASE_VERSION"
           cd release
           sha256sum -- * > SHA256SUMS.txt
           cat > "$RUNNER_TEMP/release-notes.md" <<EOF
-          Compilation automatique du commit $COMMIT_SHA.
+          Dusklight $tag, compilation du commit $COMMIT_SHA.
 
           - Android ARM64 : APK signée et installable, interface en français.
           - Linux x86_64 et ARM64 : AppImage et SDK/symboles de débogage.
@@ -382,7 +383,7 @@ jobs:
           EOF
           if ! gh release view "$tag" > /dev/null 2>&1; then
             gh release create "$tag" --target "$COMMIT_SHA" --draft \
-              --title "Build ${COMMIT_SHA:0:12}" --notes-file "$RUNNER_TEMP/release-notes.md"
+              --title "Dusklight $tag" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
           gh release upload "$tag" ./* --clobber
           gh release edit "$tag" --draft=false --prerelease=false --latest \
