@@ -72,7 +72,7 @@ constexpr std::array kInterpolationModes = {
 };
 
 constexpr std::array kAudioOutputModeNames = {
-    android_text("Stereo (Speakers)", "Haut-parleurs"),
+    android_text("Stereo (Speakers)", "Enceintes"),
     android_text("Stereo (Headphones)", "Casque stéréo"),
     android_text("5.1 Surround", "Surround 5.1"),
     android_text("7.1 Surround", "Surround 7.1"),
