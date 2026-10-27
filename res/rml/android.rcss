@@ -1,0 +1,53 @@
+/* French labels must remain readable on handheld screens at Android's DPI scale. */
+window content pane {
+    padding: var(--space-lg);
+}
+
+window content pane select-button key {
+    flex: 1 1 0;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    text-transform: none;
+    line-height: 1.25;
+}
+
+window content pane select-button value {
+    flex: 0 1 auto;
+    max-width: 45%;
+    white-space: normal;
+    word-break: break-all;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: var(--font-size-xl);
+    line-height: 1.25;
+}
+
+/* Preserve accented letters instead of relying on ASCII-only uppercasing. */
+tab-bar,
+section-heading,
+#menu-list button,
+footer-button {
+    text-transform: none;
+}
+
+tuner-title {
+    flex: 1 1 0;
+    min-width: 0;
+    white-space: normal;
+}
+
+@media (max-width: 640dp) {
+    window content pane select-button:not(.group-button) {
+        flex-wrap: wrap;
+    }
+
+    window content pane select-button:not(.group-button) key {
+        flex: 1 1 100%;
+    }
+
+    window content pane select-button:not(.group-button) value {
+        max-width: 100%;
+        text-align: left;
+    }
+}

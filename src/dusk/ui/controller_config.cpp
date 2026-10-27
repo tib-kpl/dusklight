@@ -321,7 +321,7 @@ void ControllerConfigWindow::build_port_tab(Rml::Element* content, int port) {
     leftPane.add_section("Options");
     leftPane.register_control(
         leftPane.add_child<BoolButton>(BoolButton::Props{
-            .key = android_text("Enable LED Status", "Éclairage selon l'état du jeu"),
+            .key = android_text("Enable LED Status", "Éclairage dynamique"),
             .getValue = [port] { return getSettings().game.enableLED[port].getValue(); },
             .setValue =
                 [port](const bool value) { getSettings().game.enableLED[port].setValue(value); },
@@ -382,13 +382,12 @@ void ControllerConfigWindow::build_port_tab(Rml::Element* content, int port) {
                     "Convertit les mouvements des gâchettes analogiques en pressions sur les "
                     "boutons L et R."));
         });
-    leftPane.register_control(leftPane
-                                  .add_button(android_text("Restore Default Controls",
-                                      "Rétablir les commandes par défaut"))
-                                  .on_pressed([this, port] {
-                                      mDoAud_seStartMenu(kSoundClick);
-                                      PADRestoreDefaultMapping(port);
-                                  }),
+    leftPane.register_control(
+        leftPane.add_button(android_text("Restore Default Controls", "Commandes par défaut"))
+            .on_pressed([this, port] {
+                mDoAud_seStartMenu(kSoundClick);
+                PADRestoreDefaultMapping(port);
+            }),
         rightPane, [](Pane& pane) {
             pane.clear();
             pane.add_text(android_text("Restores all binding configurations for the currently "
@@ -714,8 +713,7 @@ void ControllerConfigWindow::render_page(Pane& pane, int port, Page page) {
         }
 
         if (PADDeadZones* deadZones = PADGetDeadZones(port)) {
-            pane.add_section(
-                android_text("Emulated Trigger Thresholds", "Seuils des gâchettes émulées"));
+            pane.add_section(android_text("Emulated Trigger Thresholds", "Seuils des gâchettes"));
             pane.add_child<NumberButton>(NumberButton::Props{
                 .key = android_text("L Threshold", "Seuil de L"),
                 .getValue =
@@ -926,7 +924,7 @@ void ControllerConfigWindow::render_page(Pane& pane, int port, Page page) {
             }
         });
         pane.add_child<NumberButton>(NumberButton::Props{
-            .key = android_text("Low Rumble Frequency", "Vibrations de basse fréquence"),
+            .key = android_text("Low Rumble Frequency", "Vibrations basses"),
             .getValue =
                 [port] {
                     u16 low = 0;
@@ -949,7 +947,7 @@ void ControllerConfigWindow::render_page(Pane& pane, int port, Page page) {
             .suffix = "%",
         });
         pane.add_child<NumberButton>(NumberButton::Props{
-            .key = android_text("High Rumble Frequency", "Vibrations de haute fréquence"),
+            .key = android_text("High Rumble Frequency", "Vibrations hautes"),
             .getValue =
                 [port] {
                     u16 low = 0;

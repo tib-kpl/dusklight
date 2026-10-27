@@ -24,6 +24,14 @@ Rml::ElementDocument* load_document(const Rml::String& source) {
             }
             document->SetStyleSheetContainer(std::move(global));
         }
+#if defined(TARGET_ANDROID) || defined(__ANDROID__)
+        if (auto androidStyles = Rml::Factory::InstanceStyleSheetFile("res/rml/android.rcss")) {
+            if (const auto* local = document->GetStyleSheetContainer()) {
+                androidStyles = local->CombineStyleSheetContainer(*androidStyles);
+            }
+            document->SetStyleSheetContainer(std::move(androidStyles));
+        }
+#endif
     }
     return document;
 }

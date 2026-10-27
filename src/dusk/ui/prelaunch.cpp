@@ -517,7 +517,7 @@ std::vector<const gamemode::GameMode*> carousel_game_modes() {
 
 std::string game_mode_button_text() {
     if (prelaunch_state().activeDiscPath.empty()) {
-        return android_text("Select Disc Image", "Choisir une image du disque");
+        return android_text("Select Disc Image", "Choisir un disque");
     }
     const auto* currentGameMode = gamemode::getGameModeManager().getCurrentGameMode();
     if (currentGameMode == nullptr || currentGameMode->getId() == gamemode::kVanillaGameModeId) {

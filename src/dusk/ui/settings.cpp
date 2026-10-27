@@ -59,10 +59,10 @@ constexpr std::array kCardFileTypes = {
 };
 
 constexpr std::array kFpsOverlayCornerNames = {
-    android_text("Top Left", "En haut à gauche"),
-    android_text("Top Right", "En haut à droite"),
-    android_text("Bottom Left", "En bas à gauche"),
-    android_text("Bottom Right", "En bas à droite"),
+    android_text("Top Left", "Haut gauche"),
+    android_text("Top Right", "Haut droite"),
+    android_text("Bottom Left", "Bas gauche"),
+    android_text("Bottom Right", "Bas droite"),
 };
 
 constexpr std::array kInterpolationModes = {
@@ -72,8 +72,8 @@ constexpr std::array kInterpolationModes = {
 };
 
 constexpr std::array kAudioOutputModeNames = {
-    android_text("Stereo (Speakers)", "Stéréo (haut-parleurs)"),
-    android_text("Stereo (Headphones)", "Stéréo (casque)"),
+    android_text("Stereo (Speakers)", "Haut-parleurs"),
+    android_text("Stereo (Headphones)", "Casque stéréo"),
     android_text("5.1 Surround", "Surround 5.1"),
     android_text("7.1 Surround", "Surround 7.1"),
 };
@@ -81,8 +81,8 @@ constexpr std::array kAudioOutputModeNames = {
 constexpr std::array kLetterboxModes = {
     android_text("Off", "Désactivé"),
     android_text("On", "Activé"),
-    android_text("Only During Gameplay", "Uniquement en jeu"),
-    android_text("Only During Cutscenes", "Uniquement pendant les cinématiques"),
+    android_text("Only During Gameplay", "En jeu seulement"),
+    android_text("Only During Cutscenes", "Cinématiques"),
 };
 
 constexpr std::array kTouchTargetingLabels = {
@@ -115,7 +115,7 @@ constexpr std::array kMenuScalingModeLabels = {
 
 constexpr std::array kAlwaysGreatspinModes = {
     android_text("Off", "Désactivé"),
-    android_text("After Learning Skill", "Après avoir appris la technique"),
+    android_text("After Learning Skill", "Technique apprise"),
     android_text("Always", "Toujours"),
 };
 
@@ -124,7 +124,7 @@ constexpr std::array kMagicArmorModes = {
     android_text("On Damage", "Lors des dégâts"),
     android_text("Double Defense", "Défense doublée"),
     android_text("Invincible", "Invulnérable"),
-    android_text("Cosmetic", "Apparence uniquement"),
+    android_text("Cosmetic", "Apparence seule"),
 };
 
 bool try_parse_backend(std::string_view backend, AuroraBackend& outBackend) {
@@ -573,16 +573,14 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
                             "journaux, packs de textures et autres données de l'application."));
                         pane.add_child<DataFolderPathText>();
 #if DUSK_CAN_OPEN_DATA_FOLDER
-                        pane.add_button(
-                                android_text("Open Data Folder", "Ouvrir le dossier de données"))
+                        pane.add_button(android_text("Open Data Folder", "Ouvrir les données"))
                             .on_pressed([] {
                                 if (data::open_data_path()) {
                                     mDoAud_seStartMenu(kSoundClick);
                                 }
                             });
 #endif
-                        pane.add_button(
-                                android_text("Change Data Folder", "Changer le dossier de données"))
+                        pane.add_button(android_text("Change Data Folder", "Changer de dossier"))
                             .on_pressed([] {
                                 const auto defaultLocation =
                                     borealis::io::fs_path_to_string(data::configured_data_path());
@@ -604,8 +602,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
 #endif
                         pane.add_button(
                                 {
-                                    .text = android_text(
-                                        "Reset to Default", "Rétablir les valeurs par défaut"),
+                                    .text = android_text("Reset to Default", "Valeurs par défaut"),
                                     .isDisabled = [] { return data::is_default_data_path(); },
                                 })
                             .on_pressed([] {
@@ -737,16 +734,15 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
                     config::save();
                 }),
             rightPane, [](Pane& pane) { pane.clear(); });
-        leftPane.register_control(leftPane
-                                      .add_button(android_text("Restore Default Window Size",
-                                          "Rétablir la taille de fenêtre par défaut"))
-                                      .on_pressed([] {
-                                          mDoAud_seStartMenu(kSoundItemChange);
-                                          getSettings().video.enableFullscreen.setValue(false);
-                                          VISetWindowFullscreen(false);
-                                          VISetWindowSize(FB_WIDTH * 2, FB_HEIGHT * 2);
-                                          VICenterWindow();
-                                      }),
+        leftPane.register_control(
+            leftPane.add_button(android_text("Restore Default Window Size", "Rétablir la taille"))
+                .on_pressed([] {
+                    mDoAud_seStartMenu(kSoundItemChange);
+                    getSettings().video.enableFullscreen.setValue(false);
+                    VISetWindowFullscreen(false);
+                    VISetWindowSize(FB_WIDTH * 2, FB_HEIGHT * 2);
+                    VICenterWindow();
+                }),
             rightPane, [](Pane& pane) { pane.clear(); });
         config_bool_select(leftPane, rightPane, getSettings().video.enableVsync,
             {
@@ -758,7 +754,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         config_bool_select(leftPane, rightPane, getSettings().video.lockAspectRatio,
             {
-                .key = android_text("Lock 4:3 Aspect Ratio", "Verrouiller le format 4:3"),
+                .key = android_text("Lock 4:3 Aspect Ratio", "Format 4:3 fixe"),
                 .helpText = android_text("Lock the game's aspect ratio to the original.",
                     "Conserve le format d'image d'origine du jeu."),
                 .onChange =
@@ -769,14 +765,14 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         config_bool_select(leftPane, rightPane, getSettings().game.pauseOnFocusLost,
             {
-                .key = android_text("Pause on Focus Lost", "Pause lorsque la fenêtre est inactive"),
+                .key = android_text("Pause on Focus Lost", "Pause si fenêtre inactive"),
                 .helpText = android_text("Pause the game when window focus is lost.",
                     "Met le jeu en pause lorsque sa fenêtre devient inactive."),
                 .isDisabled = [] { return IsMobile || speedrun::isActive(); },
             });
         leftPane.register_control(
             leftPane.add_select_button({
-                .key = android_text("Show FPS Counter", "Compteur d'images par seconde"),
+                .key = android_text("Show FPS Counter", "Compteur FPS"),
                 .getValue =
                     [] {
                         if (!getSettings().video.enableFpsOverlay.getValue()) {
@@ -829,7 +825,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         config_bool_select(leftPane, rightPane, getSettings().video.rememberWindowSize,
             {
-                .key = android_text("Remember Window Size", "Mémoriser la taille de la fenêtre"),
+                .key = android_text("Remember Window Size", "Mémoriser la taille"),
                 .helpText = android_text(
                     "Save and restore the previous session's window size when opening Dusklight.",
                     "Enregistre et rétablit la taille de la fenêtre de la session précédente à "
@@ -870,7 +866,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
         graphics_tuner_control(*this, leftPane, rightPane,
             GraphicsTunerProps{
                 .option = GraphicsOption::Resampler,
-                .title = android_text("Output Resampling", "Rééchantillonnage de sortie"),
+                .title = android_text("Output Resampling", "Filtre de sortie"),
                 .helpText = kResamplerHelpText,
             });
 
@@ -898,13 +894,12 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
         graphics_tuner_control(*this, leftPane, rightPane,
             GraphicsTunerProps{
                 .option = GraphicsOption::TextureReplacements,
-                .title =
-                    android_text("Enable Texture Replacements", "Activer les packs de textures"),
+                .title = android_text("Enable Texture Replacements", "Packs de textures"),
                 .helpText = kTextureReplacementHelpText,
             });
         leftPane.register_control(
             leftPane.add_select_button({
-                .key = android_text("Unlock Framerate", "Débloquer la fréquence des images"),
+                .key = android_text("Unlock Framerate", "Débloquer les FPS"),
                 .getValue =
                     [] {
                         return kInterpolationModes[static_cast<u8>(
@@ -939,7 +934,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         config_int_select(
             leftPane, rightPane, getSettings().video.maxFrameRate,
-            android_text("Framerate Cap", "Limite d'images par seconde"),
+            android_text("Framerate Cap", "Limite de FPS"),
             android_text("Limit the framerate to the specified value.",
                 "Limite le nombre d'images par seconde à la valeur indiquée."),
             30, 540, 1,
@@ -956,8 +951,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
                     "performances.")});
         config_bool_select(leftPane, rightPane, getSettings().game.disableCutscenePillarboxing,
             {
-                .key =
-                    android_text("Disable Cutscene Pillarboxing", "Supprimer les bandes latérales"),
+                .key = android_text("Disable Cutscene Pillarboxing", "Sans bandes latérales"),
                 .helpText =
                     android_text("Disable black bars on the left and right sides of the screen "
                                  "during some cutscenes, particularly on ultra-wide displays. "
@@ -968,7 +962,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         leftPane.register_control(
             leftPane.add_select_button({
-                .key = android_text("Disable Letterboxing", "Supprimer les bandes horizontales"),
+                .key = android_text("Disable Letterboxing", "Sans bandes horizontales"),
                 .getValue =
                     [] {
                         return kLetterboxModes[static_cast<u8>(
@@ -1050,7 +1044,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
                 "Affiche les commandes tactiles.<br/><br/>Faites glisser votre doigt à gauche pour "
                 "vous déplacer et à droite pour contrôler la caméra."));
         auto& customizeTouchLayout = leftPane.add_group_button(GroupButton::Props{
-            .text = android_text("Customize Layout", "Personnaliser la disposition"),
+            .text = android_text("Customize Layout", "Modifier la disposition"),
             .isDisabled = [] { return !getSettings().game.enableTouchControls; },
         });
         leftPane.register_control(customizeTouchLayout.on_pressed(
@@ -1100,14 +1094,14 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
                         kTouchTargetingDescriptions[2]));
             });
         config_percent_select(leftPane, rightPane, getSettings().game.touchCameraXSensitivity,
-            android_text("Touch Camera X Sensitivity", "Sensibilité horizontale tactile"),
+            android_text("Touch Camera X Sensitivity", "Sensibilité tactile X"),
             android_text("Adjusts touch camera horizontal sensitivity.<br/><br/>Applies to touch "
                          "input only.",
                 "Règle la sensibilité horizontale de la caméra.<br/><br/>S'applique uniquement aux "
                 "commandes tactiles."),
             25, 400, 5, [] { return !getSettings().game.enableTouchControls; });
         config_percent_select(leftPane, rightPane, getSettings().game.touchCameraYSensitivity,
-            android_text("Touch Camera Y Sensitivity", "Sensibilité verticale tactile"),
+            android_text("Touch Camera Y Sensitivity", "Sensibilité tactile Y"),
             android_text(
                 "Adjusts touch camera vertical sensitivity.<br/><br/>Applies to touch input only.",
                 "Règle la sensibilité verticale de la caméra.<br/><br/>S'applique uniquement aux "
@@ -1121,41 +1115,39 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
                          "the C-Stick.",
                 "Permet de contrôler librement la caméra avec le stick C."));
         config_percent_select(leftPane, rightPane, getSettings().game.freeCameraXSensitivity,
-            android_text("Free Camera X Sensitivity", "Sensibilité horizontale de la caméra libre"),
+            android_text("Free Camera X Sensitivity", "Sensibilité caméra X"),
             android_text("Adjusts horizontal free camera sensitivity.<br/><br/>Applies to the "
                          "control stick only.",
                 "Règle la sensibilité horizontale de la caméra libre.<br/><br/>S'applique "
                 "uniquement au stick."),
             50, 200, 5, [] { return !getSettings().game.freeCamera; });
         config_percent_select(leftPane, rightPane, getSettings().game.freeCameraYSensitivity,
-            android_text("Free Camera Y Sensitivity", "Sensibilité verticale de la caméra libre"),
+            android_text("Free Camera Y Sensitivity", "Sensibilité caméra Y"),
             android_text("Adjusts vertical free camera sensitivity.<br/><br/>Applies to the "
                          "control stick only.",
                 "Règle la sensibilité verticale de la caméra libre.<br/><br/>S'applique uniquement "
                 "au stick."),
             50, 200, 5, [] { return !getSettings().game.freeCamera; });
-        addOption(android_text("Invert Camera X Axis", "Inverser l'axe horizontal de la caméra"),
+        addOption(android_text("Invert Camera X Axis", "Inverser caméra X"),
             getSettings().game.invertCameraXAxis,
             android_text(
                 "Invert horizontal camera movement.<br/><br/>Applies to the control stick only.",
                 "Inverse les mouvements horizontaux de la caméra.<br/><br/>S'applique uniquement "
                 "au stick."));
-        addOption(android_text("Invert Camera Y Axis", "Inverser l'axe vertical de la caméra"),
+        addOption(android_text("Invert Camera Y Axis", "Inverser caméra Y"),
             getSettings().game.invertCameraYAxis,
             android_text(
                 "Invert vertical camera movement.<br/><br/>Applies to the control stick only.",
                 "Inverse les mouvements verticaux de la caméra.<br/><br/>S'applique uniquement au "
                 "stick."),
             [] { return !getSettings().game.freeCamera; });
-        addOption(
-            android_text("Invert First Person X Axis", "Inverser la vue subjective horizontale"),
+        addOption(android_text("Invert First Person X Axis", "Inverser visée X"),
             getSettings().game.invertFirstPersonXAxis,
             android_text("Invert horizontal movement while aiming with items or first person "
                          "camera.<br/><br/>Applies to the control stick only.",
                 "Inverse les mouvements horizontaux pendant la visée ou en vue "
                 "subjective.<br/><br/>S'applique uniquement au stick."));
-        addOption(
-            android_text("Invert First Person Y Axis", "Inverser la vue subjective verticale"),
+        addOption(android_text("Invert First Person Y Axis", "Inverser visée Y"),
             getSettings().game.invertFirstPersonYAxis,
             android_text("Invert vertical movement while aiming with items or first person "
                          "camera.<br/><br/>Applies to the control stick only.",
@@ -1176,12 +1168,12 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             android_text("Enables gyro controls for Rollgoal in Hena's Cabin.",
                 "Active le gyroscope pour Kororinpa dans la cabane de Hena."));
         config_percent_select(leftPane, rightPane, getSettings().game.gyroSensitivityY,
-            android_text("Gyro Pitch Sensitivity", "Sensibilité verticale du gyroscope"),
+            android_text("Gyro Pitch Sensitivity", "Sensibilité gyro Y"),
             android_text("Controls vertical gyro aiming sensitivity.",
                 "Règle la sensibilité verticale de la visée gyroscopique."),
             25, 400, 5, [] { return !gyro_enabled(); });
         config_percent_select(leftPane, rightPane, getSettings().game.gyroSensitivityX,
-            android_text("Gyro Yaw Sensitivity", "Sensibilité horizontale du gyroscope"),
+            android_text("Gyro Yaw Sensitivity", "Sensibilité gyro X"),
             android_text("Controls horizontal gyro aiming sensitivity.",
                 "Règle la sensibilité horizontale de la visée gyroscopique."),
             25, 400, 5, [] { return !gyro_enabled(); });
@@ -1202,12 +1194,12 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             android_text("Higher values smooth gyro input over time.",
                 "Les valeurs élevées lissent davantage les mouvements du gyroscope."),
             0, 100, 1, [] { return !gyro_enabled(); });
-        addOption(android_text("Invert Gyro Pitch", "Inverser le gyroscope vertical"),
+        addOption(android_text("Invert Gyro Pitch", "Inverser gyro Y"),
             getSettings().game.gyroInvertPitch,
             android_text(
                 "Invert vertical gyro aiming.", "Inverse la visée gyroscopique verticale."),
             [] { return !gyro_enabled(); });
-        addOption(android_text("Invert Gyro Yaw", "Inverser le gyroscope horizontal"),
+        addOption(android_text("Invert Gyro Yaw", "Inverser gyro X"),
             getSettings().game.gyroInvertYaw,
             android_text(
                 "Invert horizontal gyro aiming.", "Inverse la visée gyroscopique horizontale."),
@@ -1227,16 +1219,16 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             android_text("Enables mouse input for controlling the third-person camera.",
                 "Permet de contrôler la caméra à la troisième personne avec la souris."));
         config_percent_select(leftPane, rightPane, getSettings().game.mouseAimSensitivity,
-            android_text("Mouse Aim Sensitivity", "Sensibilité de visée à la souris"),
+            android_text("Mouse Aim Sensitivity", "Sensibilité visée souris"),
             android_text(
                 "Controls mouse aim sensitivity.", "Règle la sensibilité de visée à la souris."),
             25, 400, 5, [] { return !getSettings().game.enableMouseAim; });
         config_percent_select(leftPane, rightPane, getSettings().game.mouseCameraSensitivity,
-            android_text("Mouse Camera Sensitivity", "Sensibilité de la caméra à la souris"),
+            android_text("Mouse Camera Sensitivity", "Sensibilité caméra souris"),
             android_text("Controls mouse camera sensitivity.",
                 "Règle la sensibilité de la caméra à la souris."),
             25, 400, 5, [] { return !getSettings().game.enableMouseCamera; });
-        addOption(android_text("Invert Mouse Y", "Inverser l'axe vertical de la souris"),
+        addOption(android_text("Invert Mouse Y", "Inverser souris Y"),
             getSettings().game.invertMouseY,
             android_text("Invert vertical mouse control for both aiming and camera.",
                 "Inverse l'axe vertical de la souris pour la visée et la caméra."),
@@ -1245,20 +1237,19 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
 
         leftPane.add_section(android_text("Gameplay", "Jouabilité"));
-        addOption(android_text("Mouse/Touch in Menus", "Souris et tactile dans les menus"),
+        addOption(android_text("Mouse/Touch in Menus", "Pointeur dans les menus"),
             getSettings().game.enableMenuPointer,
             android_text("Enables mouse and touch input for supported in-game menus.",
                 "Active la souris et l'écran tactile dans les menus du jeu compatibles."));
-        addOption(
-            android_text("Invert Air/Swim X Axis", "Inverser l'axe horizontal en vol et nage"),
+        addOption(android_text("Invert Air/Swim X Axis", "Inverser vol/nage X"),
             getSettings().game.invertAirSwimX,
             android_text("Invert horizontal movement while flying or swimming.",
                 "Inverse les mouvements horizontaux en vol et à la nage."));
-        addOption(android_text("Invert Air/Swim Y Axis", "Inverser l'axe vertical en vol et nage"),
+        addOption(android_text("Invert Air/Swim Y Axis", "Inverser vol/nage Y"),
             getSettings().game.invertAirSwimY,
             android_text("Invert vertical movement while flying or swimming.",
                 "Inverse les mouvements verticaux en vol et à la nage."));
-        addOption(android_text("Swap Direct Select Input", "Inverser la sélection directe"),
+        addOption(android_text("Swap Direct Select Input", "Inverser sélection directe"),
             getSettings().game.swapDirectSelect,
             android_text("Swap the controls for using Direct Select on the item wheel, making "
                          "Direct Select the default and holding L to scroll the wheel.",
@@ -1270,8 +1261,8 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             android_text("Hold Tab to increase game speed by up to 4x.",
                 "Maintenez Tab pour accélérer le jeu jusqu'à 4 fois."),
             [] { return speedrun::isActive(); });
-        addOption(android_text("Reset Key (", "Touche de réinitialisation (") +
-                      Rml::String{hotkeys::DO_RESET} + ")",
+        addOption(
+            android_text("Reset Key (", "Réinitialiser (") + Rml::String{hotkeys::DO_RESET} + ")",
             getSettings().game.enableResetKeybind,
             android_text("Press ", "Appuyez sur ") + Rml::String{hotkeys::DO_RESET} +
                 android_text(" to reset the game.", " pour réinitialiser le jeu."));
@@ -1384,14 +1375,13 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
         leftPane.add_section(android_text("Tweaks", "Ajustements"));
         config_bool_select(leftPane, rightPane, getSettings().game.noLowHpSound,
             {
-                .key = android_text("No Low HP Sound", "Désactiver l'alerte de vie faible"),
+                .key = android_text("No Low HP Sound", "Sans alerte de vie faible"),
                 .helpText = android_text("Disable the beeping sound when having low health.",
                     "Désactive le signal sonore lorsque votre vie est faible."),
             });
         config_bool_select(leftPane, rightPane, getSettings().game.midnasLamentNonStop,
             {
-                .key = android_text(
-                    "Non-Stop Midna's Lament", "Lamentation de Midona sans interruption"),
+                .key = android_text("Non-Stop Midna's Lament", "Lamentation continue"),
                 .helpText = android_text("Prevents enemy music while Midna's Lament is playing.",
                     "Empêche la musique des ennemis d'interrompre la Lamentation de Midona."),
             });
@@ -1418,30 +1408,29 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
         addOption(android_text("Mirror Mode", "Mode miroir"), getSettings().game.enableMirrorMode,
             android_text("Mirrors the world horizontally, matching the Wii version of the game.",
                 "Inverse le monde horizontalement, comme dans la version Wii du jeu."));
-        addOption(android_text("Minimal HUD", "Affichage tête haute minimal"),
-            getSettings().game.minimalHUD,
+        addOption(android_text("Minimal HUD", "HUD minimal"), getSettings().game.minimalHUD,
             android_text("Disables the elements of the main HUD of the game.<br/>Useful for a more "
                          "immersive "
                          "experience.",
                 "Masque les éléments de l'affichage tête haute du jeu.<br/>Utile pour une "
                 "expérience plus immersive."));
         config_percent_select(leftPane, rightPane, getSettings().game.hudScale,
-            android_text("HUD Scale", "Taille de l'affichage tête haute"),
+            android_text("HUD Scale", "Taille du HUD"),
             android_text("Scales the size of the gameplay HUD (hearts, buttons, mini-map, etc.). "
                          "Does not affect dialog boxes or menus.",
                 "Règle la taille de l'affichage tête haute (cœurs, boutons, mini-carte, etc.). "
                 "N'affecte pas les dialogues ni les menus."),
             50, 200, 5, [] { return getSettings().game.minimalHUD.getValue(); });
-        addOption(android_text("Restore Wii 1.0 Glitches", "Rétablir les bugs de la Wii 1.0"),
+        addOption(android_text("Restore Wii 1.0 Glitches", "Bugs de la Wii 1.0"),
             getSettings().game.restoreWiiGlitches,
             android_text("Restores patched glitches from Wii USA 1.0, the first released version.",
                 "Rétablit les bugs corrigés de la version Wii USA 1.0, première version "
                 "commercialisée."));
-        addOption(android_text("Enable Rotating Link Doll", "Faire pivoter Link dans l'inventaire"),
+        addOption(android_text("Enable Rotating Link Doll", "Rotation de Link"),
             getSettings().game.enableLinkDollRotation,
             android_text("Enables rotating Link in the collection menu with the C-Stick.",
                 "Permet de faire pivoter Link avec le stick C dans le menu de collection."));
-        addOption(android_text("Hide Owl Statue Markers", "Masquer les statues de hibou terminées"),
+        addOption(android_text("Hide Owl Statue Markers", "Masquer les hiboux trouvés"),
             getSettings().game.removeQuestMapMarkers,
             android_text("Removes completed Owl Statue markers from the map and Minimap.",
                 "Masque les marqueurs des statues de hibou terminées sur la carte et la "
@@ -1486,7 +1475,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             getSettings().game.biggerWallets,
             android_text("Wallet sizes are like in the HD version. (500, 1000, 2000)",
                 "Utilise les capacités des bourses de la version HD (500, 1000, 2000)."));
-        addOption(android_text("Disable Rupee Cutscenes", "Supprimer les animations des rubis"),
+        addOption(android_text("Disable Rupee Cutscenes", "Sans animations de rubis"),
             getSettings().game.disableRupeeCutscenes,
             android_text(
                 "Rupees will not play cutscenes after you have collected them the first time.",
@@ -1515,17 +1504,15 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             getSettings().game.instantSaves,
             android_text("Skips the delay when writing to the Memory Card.",
                 "Supprime le délai d'écriture sur la carte mémoire."));
-        addOption(android_text("Hold B for Instant Text", "Maintenir B pour le texte instantané"),
+        addOption(android_text("Hold B for Instant Text", "Texte instantané avec B"),
             getSettings().game.instantText,
             android_text("Makes text scroll immediately by holding B.",
                 "Affiche le texte immédiatement lorsque vous maintenez B."));
-        addSpeedrunDisabledOption(
-            android_text("Hold Button to Mash", "Répétition automatique des boutons"),
+        addSpeedrunDisabledOption(android_text("Hold Button to Mash", "Répétition automatique"),
             getSettings().game.holdToMash,
             android_text("Hold the indicated button to mash automatically.",
                 "Maintenez le bouton indiqué pour répéter automatiquement les pressions."));
-        addOption(
-            android_text("No Climbing Miss Animation", "Supprimer les hésitations en escalade"),
+        addOption(android_text("No Climbing Miss Animation", "Escalade sans hésitation"),
             getSettings().game.noMissClimbing,
             android_text("Prevents Link from playing a struggle animation when grabbing ledges or "
                          "climbing on vines.",
@@ -1548,7 +1535,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             android_text(
                 "Allow fishing with the Fishing Rod using the button the item is assigned to.",
                 "Permet de pêcher avec le bouton auquel la canne à pêche est assignée."));
-        addOption(android_text("Show Poe Count on Map", "Compteur d'âmes sur la carte"),
+        addOption(android_text("Show Poe Count on Map", "Âmes sur la carte"),
             getSettings().game.enhancedMapMenus,
             android_text("Displays collected/total number of Poe Souls for a region on the map.",
                 "Affiche sur la carte le nombre d'âmes de spectre obtenues et le total par "
@@ -1565,8 +1552,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             getSettings().game.aimingReticle,
             android_text("Shows the aiming reticle for bow and slingshot.",
                 "Affiche le réticule de visée de l'arc et du lance-pierres."));
-        addOption(android_text("No Hit Stun", "Supprimer les pauses d'impact"),
-            getSettings().game.noHitStun,
+        addOption(android_text("No Hit Stun", "Sans pauses d'impact"), getSettings().game.noHitStun,
             android_text("Disables hit stun frames after attacks.",
                 "Supprime les images de pause après les attaques."));
 
@@ -1612,7 +1598,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         config_bool_select(leftPane, rightPane, getSettings().game.showSpeedrunRTATimer,
             {
-                .key = android_text("Show RTA", "Afficher le temps réel (RTA)"),
+                .key = android_text("Show RTA", "Temps réel (RTA)"),
                 .helpText = android_text("Display the RTA timer. IGT is always visible.",
                     "Affiche le chronomètre en temps réel (RTA). Le temps de jeu (IGT) reste "
                     "toujours visible."),
@@ -1666,7 +1652,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
         addCheat(android_text("Moon Jump (R+A)", "Saut lunaire (R+A)"), getSettings().game.moonJump,
             android_text("Hold R and A to rise into the air.",
                 "Maintenez R et A pour vous élever dans les airs."));
-        addCheat(android_text("Easy Quick Spin (R+B)", "Attaque circulaire facile (R+B)"),
+        addCheat(android_text("Easy Quick Spin (R+B)", "Attaque circulaire (R+B)"),
             getSettings().game.easyQuickSpin,
             android_text("Hold R to always do a Quick Spin when attacking with B.",
                 "Maintenez R pour toujours effectuer une attaque circulaire en attaquant avec B."));
@@ -1729,7 +1715,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
                 "Accélère l'aérouage lorsque vous maintenez R."));
         leftPane.register_control(
             leftPane.add_select_button({
-                .key = android_text("Magic Armor Behavior", "Comportement de l'armure magique"),
+                .key = android_text("Magic Armor Behavior", "Armure magique"),
                 .getValue =
                     [] {
                         return kMagicArmorModes[static_cast<u8>(
@@ -1780,7 +1766,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
         leftPane.add_section("Dusklight");
 #if DUSK_CAN_OPEN_DATA_FOLDER
         leftPane.register_control(
-            leftPane.add_button(android_text("Open Data Folder", "Ouvrir le dossier de données"))
+            leftPane.add_button(android_text("Open Data Folder", "Ouvrir les données"))
                 .on_pressed([] {
                     mDoAud_seStartMenu(kSoundClick);
                     data::open_data_path();
@@ -1904,8 +1890,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
 #endif
         config_bool_select(leftPane, rightPane, getSettings().backend.skipPreLaunchUI,
             {
-                .key = android_text(
-                    "Skip Dusklight Main Menu", "Ignorer le menu principal de Dusklight"),
+                .key = android_text("Skip Dusklight Main Menu", "Ignorer le menu principal"),
                 .helpText = android_text(
                     "When starting Dusklight, skip the main menu and boot straight into the "
                     "game if a disc image is available.<br/><br/>Note: If any mods register game "
@@ -1916,8 +1901,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         config_bool_select(leftPane, rightPane, getSettings().backend.showPipelineCompilation,
             {
-                .key =
-                    android_text("Show Shader Compilation", "Afficher la compilation des shaders"),
+                .key = android_text("Show Shader Compilation", "Compilation des shaders"),
                 .helpText = android_text(
                     "Show an overlay when shaders are being compiled for your hardware.",
                     "Affiche un indicateur pendant la compilation des shaders pour votre "
@@ -1925,8 +1909,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         config_bool_select(leftPane, rightPane, getSettings().backend.checkForUpdates,
             {
-                .key = android_text(
-                    "Check for Dusklight Updates", "Rechercher les mises à jour de Dusklight"),
+                .key = android_text("Check for Dusklight Updates", "Rechercher les mises à jour"),
                 .helpText = android_text(
                     "Checks GitHub releases for a new Dusklight version on startup.<br/><br/>"
                     "No personal information is transmitted or collected.",
@@ -1936,8 +1919,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
 #if BOREALIS_HAS_DISCORD
         config_bool_select(leftPane, rightPane, getSettings().game.enableDiscordPresence,
             {
-                .key = android_text(
-                    "Enable Discord Rich Presence", "Activer la présence enrichie Discord"),
+                .key = android_text("Enable Discord Rich Presence", "Présence Discord"),
                 .helpText =
                     android_text("Enable Dusklight to integrate with Discord Rich Presence. This "
                                  "allows Discord to show your status in-game.",
@@ -1954,7 +1936,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
 #endif
         config_bool_select(leftPane, rightPane, getSettings().backend.enableAdvancedSettings,
             {
-                .key = android_text("Enable Advanced Settings", "Activer les paramètres avancés"),
+                .key = android_text("Enable Advanced Settings", "Paramètres avancés"),
                 .icon = "warning",
                 .helpText = android_text(
                     "Show advanced settings and debugging tools with "
@@ -1968,32 +1950,31 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         config_bool_select(leftPane, rightPane, getSettings().game.showInputViewer,
             {
-                .key = android_text("Show Input Viewer", "Afficher les commandes à l'écran"),
+                .key = android_text("Show Input Viewer", "Visualiser les commandes"),
                 .helpText = android_text("Display a controller input overlay while playing.",
                     "Affiche les commandes de la manette à l'écran pendant le jeu."),
             });
         config_bool_select(leftPane, rightPane, getSettings().game.showInputViewerGyro,
             {
-                .key = android_text("Show Gyro Input Viewer", "Afficher les valeurs du gyroscope"),
+                .key = android_text("Show Gyro Input Viewer", "Visualiser le gyroscope"),
                 .helpText = android_text("Show gyro sensor values in the input viewer.",
                     "Affiche les valeurs du gyroscope dans la visualisation des commandes."),
                 .isDisabled = [] { return !getSettings().game.showInputViewer; },
             });
         leftPane.add_section(android_text("Game", "Jeu"));
-        leftPane.register_control(
-            leftPane.add_select_button({
-                .key = android_text("Menu Scaling Mode", "Adaptation de la taille des menus"),
-                .getValue =
-                    [] {
-                        return kMenuScalingModeLabels[static_cast<u8>(
-                            getSettings().game.menuScalingMode.getValue())];
-                    },
-                .isModified =
-                    [] {
-                        const auto& mode = getSettings().game.menuScalingMode;
-                        return mode.getValue() != mode.getDefaultValue();
-                    },
-            }),
+        leftPane.register_control(leftPane.add_select_button({
+                                      .key = android_text("Menu Scaling Mode", "Format des menus"),
+                                      .getValue =
+                                          [] {
+                                              return kMenuScalingModeLabels[static_cast<u8>(
+                                                  getSettings().game.menuScalingMode.getValue())];
+                                          },
+                                      .isModified =
+                                          [] {
+                                              const auto& mode = getSettings().game.menuScalingMode;
+                                              return mode.getValue() != mode.getDefaultValue();
+                                          },
+                                  }),
             rightPane, [](Pane& pane) {
                 for (int i = 0; i < static_cast<int>(kMenuScalingModeLabels.size()); ++i) {
                     pane.add_button(
@@ -2020,7 +2001,7 @@ SettingsWindow::SettingsWindow(bool prelaunch) : mPrelaunch(prelaunch) {
             });
         config_bool_select(leftPane, rightPane, getSettings().game.hideTvSettingsScreen,
             {
-                .key = android_text("Skip TV Settings Screen", "Ignorer le réglage du téléviseur"),
+                .key = android_text("Skip TV Settings Screen", "Ignorer le réglage TV"),
                 .helpText =
                     android_text("Skips the TV calibration screen shown when loading a save.",
                         "Ignore l'écran de réglage du téléviseur au chargement d'une sauvegarde."),

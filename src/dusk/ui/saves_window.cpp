@@ -454,8 +454,7 @@ void confirm_import(Artifact artifact) {
     if (!hasBundledModData) {
         auto& pane = modal->content_pane();
         pane.add_child<BoolButton>(BoolButton::Props{
-            .key =
-                android_text("Keep existing mod data", "Conserver les données de mods existantes"),
+            .key = android_text("Keep existing mod data", "Garder les données de mods"),
             .getValue = [keepModData] { return *keepModData; },
             .setValue = [keepModData](bool value) { *keepModData = value; },
         });
@@ -655,7 +654,7 @@ private:
             .on_pressed([this, context, path = backup.path] {
                 if (auto* host = top_document()) {
                     host->push(std::make_unique<Modal>(Modal::Props{
-                        .title = android_text("Restore Backup", "Restaurer une copie de secours"),
+                        .title = android_text("Restore Backup", "Restaurer une copie"),
                         .bodyText =
                             android_text("Replace the current save and mod data with this backup?",
                                 "Remplacer la sauvegarde actuelle et les données de mods par cette "
@@ -678,7 +677,7 @@ private:
                                                 rebuild_content();
                                             }
                                             show_message(android_text("Restore Backup",
-                                                             "Restaurer une copie de secours"),
+                                                             "Restaurer une copie"),
                                                 result ?
                                                     android_text("The backup was restored.",
                                                         "La copie de secours a été restaurée.") :
@@ -747,11 +746,11 @@ void open_backups(std::string saveName) {
 void create_backup(const std::string& saveName) {
     auto context = context_for_save(saveName);
     if (!context) {
-        show_message(android_text("Create Backup", "Créer une copie de secours"),
-            context.result.message, true);
+        show_message(
+            android_text("Create Backup", "Créer une copie"), context.result.message, true);
         return;
     }
-    show_result(android_text("Create Backup", "Créer une copie de secours"),
+    show_result(android_text("Create Backup", "Créer une copie"),
         android_text("Backup successfully created.", "Copie de secours créée."),
         save_manager::create_backup(context.value.storage, context.value.identity));
 }
@@ -759,7 +758,7 @@ void create_backup(const std::string& saveName) {
 void open_save_folder(const std::string& saveName) {
     auto context = context_for_save(saveName);
     if (!context) {
-        show_message(android_text("Open Save Folder", "Ouvrir le dossier des sauvegardes"),
+        show_message(android_text("Open Save Folder", "Dossier des sauvegardes"),
             context.result.message, true);
         return;
     }
@@ -767,7 +766,7 @@ void open_save_folder(const std::string& saveName) {
                             context.value.storage.path :
                             context.value.storage.path.parent_path();
     if (!data::manager().open_folder(folder)) {
-        show_message(android_text("Open Save Folder", "Ouvrir le dossier des sauvegardes"),
+        show_message(android_text("Open Save Folder", "Dossier des sauvegardes"),
             android_text("The save folder could not be opened in the file browser.",
                 "Impossible d'ouvrir le dossier des sauvegardes dans l'explorateur de fichiers."),
             true);
@@ -896,8 +895,8 @@ void build_save_detail(Pane& pane, const std::string& saveName) {
         push_document(std::make_unique<ContextMenu>(
             anchor, std::vector<ContextMenu::Item>{
                         {
-                            .text = android_text("Save + mod data (.dusksave)",
-                                "Sauvegarde et données de mods (.dusksave)"),
+                            .text = android_text(
+                                "Save + mod data (.dusksave)", "Sauvegarde + mods (.dusksave)"),
                             .icon = "folder_open",
                             .onPressed = [saveName] { begin_export(saveName, true); },
                         },
@@ -923,27 +922,27 @@ void build_save_detail(Pane& pane, const std::string& saveName) {
                         "Les {} copies de secours les plus récentes sont conservées."),
             save_manager::kDefaultBackupRetention));
     auto& backupButton = pane.add_button(ControlledButton::Props{
-        .text = android_text("Create Backup", "Créer une copie de secours"),
+        .text = android_text("Create Backup", "Créer une copie"),
         .isDisabled = [savePresent] { return !savePresent || borealis::file_select::busy(); },
     });
     backupButton.on_pressed([saveName] { create_backup(saveName); });
     pane.add_button(android_text("View Backups", "Voir les copies de secours"))
         .on_pressed([saveName] { open_backups(saveName); });
     if (storage.kind == save_manager::StorageKind::RawImage) {
-        pane.add_button(ControlledButton::Props{
-                            .text = android_text("Export Full Card Image (.raw)",
-                                "Exporter la carte mémoire complète (.raw)"),
-                            .isDisabled =
-                                [path = storage.path] {
-                                    std::error_code ec;
-                                    return borealis::file_select::busy() ||
-                                           !std::filesystem::is_regular_file(path, ec);
-                                },
-                        })
+        pane
+            .add_button(ControlledButton::Props{
+                .text = android_text("Export Full Card Image (.raw)", "Exporter la carte (.raw)"),
+                .isDisabled =
+                    [path = storage.path] {
+                        std::error_code ec;
+                        return borealis::file_select::busy() ||
+                               !std::filesystem::is_regular_file(path, ec);
+                    },
+            })
             .on_pressed([saveName] { begin_raw_export(saveName); });
     }
     if (data::manager().capabilities().canOpenFolder) {
-        pane.add_button(android_text("Open Save Folder", "Ouvrir le dossier des sauvegardes"))
+        pane.add_button(android_text("Open Save Folder", "Dossier des sauvegardes"))
             .on_pressed([saveName] { open_save_folder(saveName); });
     }
     append_text_element(pane.root(), "file-path", data::abbreviated_path_string(storage.path));
