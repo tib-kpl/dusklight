@@ -1,5 +1,6 @@
 #include <RmlUi/Core.h>
 #include <RmlUi/Core/ElementText.h>
+#include <RmlUi/Core/ElementUtilities.h>
 #include <algorithm>
 #include <cctype>
 #include <filesystem>
@@ -72,11 +73,16 @@ int main(int argc, char** argv) {
     }
     std::ifstream input(argv[2]);
     std::vector<std::pair<std::string, std::string>> rows;
+    std::vector<std::string> tabs;
     std::string line;
     while (std::getline(input, line)) {
         auto split = line.find('\t');
-        if (split != std::string::npos)
-            rows.emplace_back(line.substr(0, split), line.substr(split + 1));
+        if (split != std::string::npos) {
+            if (line.substr(0, split) == "@tab")
+                tabs.push_back(line.substr(split + 1));
+            else
+                rows.emplace_back(line.substr(0, split), line.substr(split + 1));
+        }
     }
     auto* context = Rml::CreateContext("layout", {1920, 1080});
     int failures = 0;
@@ -88,7 +94,11 @@ int main(int argc, char** argv) {
 <link type="text/rcss" href="res/rml/controls.rcss"/>
 <link type="text/rcss" href="res/rml/tabbing.rcss"/>
 <link type="text/rcss" href="res/rml/window.rcss"/>
-</head><body><window open><content><pane id="left">)";
+</head><body><window open><tab-bar id="tabs" closable><close/>)";
+        for (size_t i = 0; i < tabs.size(); ++i) {
+            source += "<tab id=\"tab" + std::to_string(i) + "\">" + tabs[i] + "</tab>";
+        }
+        source += "<tab-end-spacer/></tab-bar><content><pane id=\"left\">";
         for (size_t i = 0; i < rows.size(); ++i) {
             source += "<select-button id=\"row" + std::to_string(i) + "\"><key>" + rows[i].first +
                       "</key><icon/><value>" + rows[i].second + "</value></select-button>";
@@ -104,6 +114,23 @@ int main(int argc, char** argv) {
         doc->SetStyleSheetContainer(std::move(styles));
         doc->Show();
         context->Update();
+        auto* bar = doc->GetElementById("tabs");
+        const auto barPosition = bar->GetAbsoluteOffset(Rml::BoxArea::Content);
+        const auto barSize = bar->GetBox().GetSize(Rml::BoxArea::Content);
+        for (size_t i = 0; i < tabs.size(); ++i) {
+            auto* tab = doc->GetElementById("tab" + std::to_string(i));
+            const auto position = tab->GetAbsoluteOffset(Rml::BoxArea::Border);
+            const auto size = tab->GetBox().GetSize(Rml::BoxArea::Border);
+            if (position.x < barPosition.x - 2 ||
+                position.x + size.x > barPosition.x + barSize.x + 2 ||
+                position.y < barPosition.y - 2 ||
+                position.y + size.y > barPosition.y + barSize.y + 2)
+            {
+                std::cout << "FAIL tab scale=" << scale << " label=" << tabs[i] << '\n';
+                ++failures;
+            }
+            ++checks;
+        }
         for (size_t i = 0; i < rows.size(); ++i) {
             auto* row = doc->GetElementById("row" + std::to_string(i));
             row->ScrollIntoView();
@@ -120,7 +147,11 @@ int main(int argc, char** argv) {
                 float maxWidth = 0;
                 for (const auto& renderedLine : text->GetLines()) {
                     actual += renderedLine.text;
-                    maxWidth = std::max(maxWidth, static_cast<float>(renderedLine.width));
+                    // Geometry widths may already include ellipsis truncation. Measure the
+                    // complete line so clipped text cannot make this check pass.
+                    maxWidth = std::max(maxWidth,
+                        static_cast<float>(
+                            Rml::ElementUtilities::GetStringWidth(text, renderedLine.text)));
                 }
                 float width = label->GetClientWidth();
                 bool fits = maxWidth <= width + 2 &&

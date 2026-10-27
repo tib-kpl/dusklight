@@ -16,7 +16,7 @@ window content pane select-button value {
     flex: 0 0 35%;
     max-width: 45%;
     white-space: normal;
-    word-break: break-all;
+    word-break: break-word;
     overflow: visible;
     text-overflow: clip;
     font-size: var(--font-size-xl);
@@ -29,6 +29,18 @@ section-heading,
 #menu-list button,
 footer-button {
     text-transform: none;
+}
+
+window tab-bar tab {
+    padding: 0 var(--space-md);
+}
+
+window tab-bar[closable] {
+    padding-right: var(--toolbar-height);
+}
+
+window tab-bar[closable] tab-end-spacer {
+    display: none;
 }
 
 tuner-title {
@@ -50,5 +62,20 @@ tuner-title {
         flex: 0 0 100%;
         max-width: 100%;
         text-align: left;
+    }
+}
+
+@media (max-width: 768dp) {
+    window tab-bar {
+        flex: 0 0 auto;
+        flex-wrap: wrap;
+        height: auto;
+        min-height: var(--toolbar-height);
+        align-items: center;
+        overflow: visible;
+    }
+
+    window tab-bar tab {
+        line-height: 48dp;
     }
 }

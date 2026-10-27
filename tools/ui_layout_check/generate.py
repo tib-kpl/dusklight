@@ -39,5 +39,8 @@ values = {'Disc Image': 'The Legend of Zelda - Twilight Princess (Europe).rvz',
           'Custom Action Bindings': translations['Press a Key or Button...']}
 output = Path(sys.argv[1] if len(sys.argv) > 1 else 'build/ui-layout-labels.tsv')
 output.parent.mkdir(parents=True, exist_ok=True)
-output.write_text('\n'.join(translations[key] + '\t' + values.get(key, translations['Off']) for key in keys), encoding='utf-8')
+tabs = ['Prelaunch', 'Video', 'Input', 'Audio', 'Gameplay', 'Cheats', 'Interface', 'Tools']
+lines = ['@tab\t' + translations.get(tab, tab) for tab in tabs]
+lines += [translations[key] + '\t' + values.get(key, translations['Off']) for key in keys]
+output.write_text('\n'.join(lines), encoding='utf-8')
 print(len(keys), 'settings scenarios generated from actual source translations')

@@ -3,7 +3,7 @@
 This standalone check uses the project's pinned RmlUi and FreeType versions and
 the fonts in `res/`. It reads the French translations from the actual C++ sources,
 then checks that complete labels and selected values fit their allocated widths.
-It covers 54 settings at four DPI/UI scales, including the Odin 2 Portal's
+It covers 54 settings and all eight settings tabs at four DPI/UI scales, including the Odin 2 Portal's
 1920×1080 display at 369 DPI and enlarged interface sizes.
 
 Run from the repository root on Linux or WSL, with CMake 3.25+, Ninja, Python 3,
