@@ -100,8 +100,16 @@ int main(int argc, char** argv) {
         }
         source += "<tab-end-spacer/></tab-bar><content><pane id=\"left\">";
         for (size_t i = 0; i < rows.size(); ++i) {
-            source += "<select-button id=\"row" + std::to_string(i) + "\"><key>" + rows[i].first +
-                      "</key><icon/><value>" + rows[i].second + "</value></select-button>";
+            bool editing = rows[i].second.starts_with("@input:");
+            source += "<select-button id=\"row" + std::to_string(i) + "\"" +
+                      (editing ? " class=\"editing\"" : "") + "><key>" + rows[i].first +
+                      "</key><icon/>";
+            if (editing)
+                source += "<value style=\"visibility: hidden\">100%</value><input type=\"number\" "
+                          "value=\"100\"/>";
+            else
+                source += "<value>" + rows[i].second + "</value>";
+            source += "</select-button>";
         }
         source += "</pane><pane><div>Texte d'aide et description du "
                   "réglage.</div></pane></content></window></body></rml>";
@@ -137,6 +145,22 @@ int main(int argc, char** argv) {
             context->Update();
             context->Render();
             for (const char* tag : {"key", "value"}) {
+                if (rows[i].second.starts_with("@input:") && std::string(tag) == "value") {
+                    auto* input = row->QuerySelector("input");
+                    const auto position = input->GetAbsoluteOffset(Rml::BoxArea::Border);
+                    const auto size = input->GetBox().GetSize(Rml::BoxArea::Border);
+                    const auto rowPosition = row->GetAbsoluteOffset(Rml::BoxArea::Border);
+                    const auto rowSize = row->GetBox().GetSize(Rml::BoxArea::Border);
+                    if (size.x < Rml::ElementUtilities::GetStringWidth(input, "100") ||
+                        position.x + size.x > rowPosition.x + rowSize.x + 2 ||
+                        position.y + size.y > rowPosition.y + rowSize.y + 2)
+                    {
+                        std::cout << "FAIL numeric input scale=" << scale << '\n';
+                        ++failures;
+                    }
+                    ++checks;
+                    continue;
+                }
                 auto* label = row->QuerySelector(tag);
                 auto* text = dynamic_cast<Rml::ElementText*>(label->GetFirstChild());
                 if (!text) {

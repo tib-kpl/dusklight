@@ -23,6 +23,17 @@ window content pane select-button value {
     line-height: 1.25;
 }
 
+window content pane select-button.editing value {
+    display: none;
+}
+
+window content pane select-button input {
+    flex: 0 0 35%;
+    min-width: 0;
+    max-width: 45%;
+    font-size: var(--font-size-xl);
+}
+
 /* Preserve accented letters instead of relying on ASCII-only uppercasing. */
 tab-bar,
 section-heading,
@@ -59,6 +70,12 @@ tuner-title {
     }
 
     window content pane select-button:not(.group-button) value {
+        flex: 0 0 100%;
+        max-width: 100%;
+        text-align: left;
+    }
+
+    window content pane select-button input {
         flex: 0 0 100%;
         max-width: 100%;
         text-align: left;

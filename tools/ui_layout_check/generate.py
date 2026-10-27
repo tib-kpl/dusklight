@@ -26,7 +26,7 @@ keys = ['Disc Image', 'Data Folder', 'Language', 'Graphics Backend', 'Save File 
         'Show Shader Compilation', 'Check for Dusklight Updates', 'Enable Discord Rich Presence',
         'Enable Advanced Settings', 'Show Input Viewer', 'Show Gyro Input Viewer',
         'Menu Scaling Mode', 'Skip TV Settings Screen', 'Enable LED Status',
-        'Emulate Triggers', 'Custom Action Bindings']
+        'Emulate Triggers', 'Custom Action Bindings', 'UI Scale']
 values = {'Disc Image': 'The Legend of Zelda - Twilight Princess (Europe).rvz',
           'Data Folder': '/storage/emulated/0/Android/data/dev.twilitrealm.dusk/files',
           'Language': translations['French'], 'Graphics Backend': 'OpenGL ES',
@@ -36,7 +36,8 @@ values = {'Disc Image': 'The Legend of Zelda - Twilight Princess (Europe).rvz',
           'Output Resampling': translations['Bilinear'],
           'Disable Letterboxing': translations['Only During Cutscenes'],
           'Magic Armor Behavior': translations['Double Defense'],
-          'Custom Action Bindings': translations['Press a Key or Button...']}
+          'Custom Action Bindings': translations['Press a Key or Button...'],
+          'UI Scale': '@input:100'}
 output = Path(sys.argv[1] if len(sys.argv) > 1 else 'build/ui-layout-labels.tsv')
 output.parent.mkdir(parents=True, exist_ok=True)
 tabs = ['Prelaunch', 'Video', 'Input', 'Audio', 'Gameplay', 'Cheats', 'Interface', 'Tools']

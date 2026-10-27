@@ -42,6 +42,7 @@ void BaseStringButton::start_editing() {
         mInputElem->SetAttribute("maxlength", mMaxLength);
     }
     mRoot->AppendChild(std::move(elemPtr));
+    mRoot->SetClass("editing", true);
 
     // Hide value element
     mValueElem->SetProperty(Rml::PropertyId::Visibility, Rml::Style::Visibility::Hidden);
@@ -143,6 +144,7 @@ void BaseStringButton::stop_editing(bool commit, bool refocusRoot) {
     mInputListeners.clear();
     mRoot->RemoveChild(mInputElem);
     mInputElem = nullptr;
+    mRoot->SetClass("editing", false);
     mOriginalValue.clear();
 
     // Restore value element
