@@ -381,9 +381,9 @@ jobs:
           [Détails de la compilation]($RUN_URL).
           EOF
           if ! gh release view "$tag" > /dev/null 2>&1; then
-            gh release create "$tag" --target "$COMMIT_SHA" --draft --prerelease \
+            gh release create "$tag" --target "$COMMIT_SHA" --draft \
               --title "Build ${COMMIT_SHA:0:12}" --notes-file "$RUNNER_TEMP/release-notes.md"
           fi
           gh release upload "$tag" ./* --clobber
-          gh release edit "$tag" --draft=false --prerelease \
+          gh release edit "$tag" --draft=false --prerelease=false --latest \
             --notes-file "$RUNNER_TEMP/release-notes.md"
