@@ -1,4 +1,5 @@
 #include "prelaunch.hpp"
+#include "android_loading.hpp"
 #include "localization.hpp"
 
 #include "dusk/app_info.hpp"
@@ -178,6 +179,7 @@ void begin_disc_verification(std::string path) noexcept {
         sDiscVerificationTask->status.cancelRequested.store(true, std::memory_order_relaxed);
         sDiscVerificationTask.reset();
     }
+    android_loading::show("Vérification de la ROM", "Ouverture de l'image du disque…", -1, true);
     sDiscVerificationTask = std::make_unique<DiscVerificationTask>(std::move(path));
     sDiscVerificationModalPushed = false;
 }
@@ -194,6 +196,7 @@ std::optional<DiscVerificationResult> take_finished_disc_verification() {
     sDiscVerificationTask->join();
     sDiscVerificationTask.reset();
     sDiscVerificationModalPushed = false;
+    android_loading::hide();
     return result;
 }
 
@@ -327,9 +330,14 @@ void apply_valid_disc_result(
 void apply_disc_verification_result(const DiscVerificationResult& result) {
     auto& state = prelaunch_state();
 
-    if (result.validation == iso::ValidationError::HashMismatch ||
-        result.validation == iso::ValidationError::Canceled)
-    {
+    if (result.validation == iso::ValidationError::Canceled) {
+        state.pendingDiscPath.clear();
+        state.pendingDiscInfo = {};
+        state.pendingDiscValidation = iso::ValidationError::Unknown;
+        state.errorString.clear();
+        return;
+    }
+    if (result.validation == iso::ValidationError::HashMismatch) {
         state.pendingDiscPath = result.path;
         state.pendingDiscInfo = result.info;
         state.pendingDiscValidation = result.validation;
@@ -436,6 +444,9 @@ private:
             return;
         }
 
+        if (android_loading::cancellation_requested()) {
+            request_cancel();
+        }
         if (mCancelRequested) {
             return;
         }
@@ -466,13 +477,19 @@ private:
 
         const float fraction =
             std::clamp(static_cast<float>(bytesRead) / static_cast<float>(bytesTotal), 0.0f, 1.0f);
+        const auto detail =
+            fmt::format("{} / {} ({:.0f}%)", format_bytes(bytesRead, verificationByteFormat),
+                format_bytes(bytesTotal, verificationByteFormat), fraction * 100.0f);
+        if (clock::now() - mLastNativeUpdate >= std::chrono::milliseconds{100}) {
+            android_loading::show("Vérification de la ROM", detail.c_str(),
+                static_cast<int>(fraction * 100.0f), true);
+            mLastNativeUpdate = clock::now();
+        }
         if (mProgress != nullptr) {
             mProgress->SetAttribute("value", fraction);
         }
         if (mDetail != nullptr) {
-            set_text_content(mDetail,
-                fmt::format("{} / {} ({:.0f}%)", format_bytes(bytesRead, verificationByteFormat),
-                    format_bytes(bytesTotal, verificationByteFormat), fraction * 100.0f));
+            set_text_content(mDetail, detail);
         }
     }
 
@@ -482,12 +499,18 @@ private:
     std::unique_ptr<Button> mCancelButton;
     bool mCancelRequested = false;
     bool mFinished = false;
+    clock::time_point mLastNativeUpdate{};
 };
 
 void file_dialog_callback(borealis::file_select::Result result) {
     if (result.status != borealis::file_select::Status::Selected || result.locations.empty()) {
+        android_loading::hide();
         if (result.status == borealis::file_select::Status::Failed) {
             PrelaunchLog.warn("File selection failed: {}", result.message);
+            prelaunch_state().errorString =
+                fmt::format(android_text("Unable to open the disc image: {}",
+                                "Impossible d'ouvrir la ROM : {}"),
+                    result.message);
         }
         return;
     }
@@ -813,6 +836,7 @@ void ensure_initialized() noexcept {
 
 void open_iso_picker() noexcept {
     ensure_initialized();
+    android_loading::call("prepareDiscSelection");
     borealis::file_select::open_file(
         {
             .parentWindow = aurora::window::get_sdl_window(),

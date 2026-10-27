@@ -1649,6 +1649,8 @@ set(DUSK_FILES
         src/dusk/ui/popover.cpp
         src/dusk/ui/popover.hpp
         src/dusk/ui/prelaunch.cpp
+        src/dusk/ui/android_loading.hpp
+        src/dusk/ui/android_loading.cpp
         src/dusk/ui/prelaunch.hpp
         src/dusk/ui/preset.cpp
         src/dusk/ui/preset.hpp

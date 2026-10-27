@@ -66,6 +66,7 @@
 #include "dusk/ui/command_console.hpp"
 #include "dusk/ui/menu_bar.hpp"
 #include "dusk/ui/overlay.hpp"
+#include "dusk/ui/android_loading.hpp"
 #include "dusk/ui/prelaunch.hpp"
 #include "dusk/ui/preset.hpp"
 #if BOREALIS_HAS_SENTRY
@@ -149,6 +150,7 @@ s32 LOAD_COPYDATE(void*) {
 AuroraInfo auroraInfo;
 
 bool launchUILoop() {
+    bool firstFrame = true;
     while (dusk::IsRunning && !dusk::IsGameLaunched) {
         const AuroraEvent* event = aurora_update();
         while (event != nullptr && event->type != AURORA_NONE) {
@@ -182,12 +184,18 @@ bool launchUILoop() {
         dusk::g_imguiConsole.PostDraw();
 
         aurora_end_frame();
+        if (firstFrame) {
+            dusk::ui::android_loading::hide();
+            firstFrame = false;
+        }
     }
 
     return dusk::IsRunning;
 }
 
 void main01(void) {
+    dusk::ui::android_loading::show(
+        "Préparation des ressources du jeu", "Initialisation de l'affichage et du son…");
     OS_REPORT("\x1b[m");
 
     // 1. Setup
@@ -229,6 +237,7 @@ void main01(void) {
 
     dusk::game_clock::initialize();
 
+    bool firstFrame = true;
     do {
         // 1. Update Window Events
         const AuroraEvent* event = aurora_update();
@@ -333,6 +342,10 @@ void main01(void) {
         }
 
         aurora_end_frame();
+        if (firstFrame) {
+            dusk::ui::android_loading::hide();
+            firstFrame = false;
+        }
 
         FrameMark;
 
@@ -894,6 +907,7 @@ int game_main(int argc, char* argv[]) {
         {
             DuskLog.fatal("DVD image failed validation: {}", dvdPath);
         }
+        dusk::ui::android_loading::show("Ouverture de la ROM", "Lecture des données du disque…");
         DuskLog.info("Loading DVD image: {}", dvdPath);
         if (!aurora_dvd_open(dvdPath.c_str())) {
             DuskLog.fatal("Failed to open DVD image: {}", dvdPath);
@@ -902,9 +916,13 @@ int game_main(int argc, char* argv[]) {
         dusk::IsGameLaunched = true;
     }
 
+    dusk::ui::android_loading::show(
+        "Préparation du jeu", "Identification du disque et de sa langue…");
     dusk::version::init();
     LanguageInit();
 
+    dusk::ui::android_loading::show(
+        "Préparation des ressources du jeu", "Initialisation de la mémoire…");
     OSInit();
 
     mDoMain::sPowerOnTime = DUSK_IF_ELSE(OSGetSystemTime(), OSGetTime());
@@ -926,6 +944,8 @@ int game_main(int argc, char* argv[]) {
         dusk::speedrun::registerSpeedrunGameMode();
     }
 
+    dusk::ui::android_loading::show(
+        "Chargement des extensions", "Préparation des extensions et de leurs fichiers…");
     if (parsed_arg_options.contains("mods") &&
             !parsed_arg_options["mods"].as<std::string>().empty())
     {

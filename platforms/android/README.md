@@ -66,6 +66,16 @@ touch layout editing, graphics tuning, save management, and launch dialogs.
 The game language is selected separately and depends on the languages available on
 your disc. Desktop and Apple interfaces retain their original English text.
 
+Android shows an animated loading screen immediately after selecting a disc image.
+Disc verification reports actual bytes read and a percentage, and can be cancelled
+without accepting an unverified image or changing the previously selected disc.
+Opening the image and preparing the game show named stages with elapsed time;
+these stages do not invent a file-installation percentage. Validation and file
+selection failures return to a visible error dialog. The loading view runs on the
+Android UI thread so it can animate while native initialization is busy.
+Surface and focus callbacks also wake the native event loop after the Android file
+picker returns, avoiding a paused renderer that only resumes on a button press.
+
 ## Automatic builds and releases
 
 Every branch push runs `.github/workflows/build.yml`, including documentation-only
